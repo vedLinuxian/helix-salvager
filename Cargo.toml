@@ -13,7 +13,7 @@ rust-version = "1.75"
 authors = ["Ved Prakash Pandey <linuxlover94@gmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/vedLinuxian/helix-salvager"
-homepage = "https://github.com/vedLinuxian/helix-salvager"
+homepage = "https://vedlinuxian.github.io/helix-salvager/"
 readme = "README.md"
 
 [profile.release]
