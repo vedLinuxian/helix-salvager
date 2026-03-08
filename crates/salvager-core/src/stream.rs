@@ -39,7 +39,7 @@ impl Default for StreamConfig {
     fn default() -> Self {
         Self {
             window_size: 64 * 1024 * 1024, // 64 MB
-            overlap: 1024 * 1024,      // 1 MB
+            overlap: 1024 * 1024,          // 1 MB
             min_file_size: 32,
             try_structured: true,
         }
@@ -114,16 +114,20 @@ pub fn stream_salvage<P: AsRef<Path>>(
     }
 
     // Memory-map the file
-    let mmap = unsafe {
-        memmap2::Mmap::map(&file)
-            .map_err(|e| StreamError::MmapFailed(e.to_string()))?
-    };
+    let mmap =
+        unsafe { memmap2::Mmap::map(&file).map_err(|e| StreamError::MmapFailed(e.to_string()))? };
 
     let data = &mmap[..];
 
     if let Some(cb) = progress_cb {
-        cb(&format!("Streaming scan: {} bytes, {} MB windows",
-            file_size, config.window_size / (1024 * 1024)), 2);
+        cb(
+            &format!(
+                "Streaming scan: {} bytes, {} MB windows",
+                file_size,
+                config.window_size / (1024 * 1024)
+            ),
+            2,
+        );
     }
 
     // If the file is small enough, just do a regular salvage
@@ -150,7 +154,10 @@ pub fn stream_salvage<P: AsRef<Path>>(
         let archive_type = detect_archive_header(data);
         if archive_type != "unknown" {
             if let Some(cb) = progress_cb {
-                cb(&format!("Trying structured {} extraction...", archive_type), 5);
+                cb(
+                    &format!("Trying structured {} extraction...", archive_type),
+                    5,
+                );
             }
             let report = engine.salvage(data, progress_cb);
             structured_files = report.files;
@@ -180,8 +187,15 @@ pub fn stream_salvage<P: AsRef<Path>>(
 
         if let Some(cb) = progress_cb {
             let pct = 10 + (window_idx as u32 * 80 / total_windows.max(1) as u32);
-            cb(&format!("Window {}/{} @ offset {:#X}",
-                window_idx + 1, total_windows, offset), pct);
+            cb(
+                &format!(
+                    "Window {}/{} @ offset {:#X}",
+                    window_idx + 1,
+                    total_windows,
+                    offset
+                ),
+                pct,
+            );
         }
 
         // Run raw carving on this window
@@ -229,20 +243,35 @@ pub fn stream_salvage<P: AsRef<Path>>(
         files: all_files.clone(),
         files_salvaged: all_files.len(),
         bytes_recovered,
-        method: format!("Streaming ({} windows, {} MB each)",
-            window_idx, config.window_size / (1024 * 1024)),
+        method: format!(
+            "Streaming ({} windows, {} MB each)",
+            window_idx,
+            config.window_size / (1024 * 1024)
+        ),
         scan_time_secs: (start.elapsed().as_secs_f64() * 1000.0).round() / 1000.0,
     })
 }
 
 /// Quick archive header detection (just first 6 bytes).
 fn detect_archive_header(data: &[u8]) -> &'static str {
-    if data.len() < 6 { return "unknown"; }
-    if data.starts_with(&[0x50, 0x4B, 0x03, 0x04]) { return "zip"; }
-    if data.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) { return "7z"; }
-    if data.starts_with(&[0x1F, 0x8B]) { return "gzip"; }
-    if data.starts_with(&[0x42, 0x5A, 0x68]) { return "bzip2"; }
-    if data.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A]) { return "xz"; }
+    if data.len() < 6 {
+        return "unknown";
+    }
+    if data.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
+        return "zip";
+    }
+    if data.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) {
+        return "7z";
+    }
+    if data.starts_with(&[0x1F, 0x8B]) {
+        return "gzip";
+    }
+    if data.starts_with(&[0x42, 0x5A, 0x68]) {
+        return "bzip2";
+    }
+    if data.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A]) {
+        return "xz";
+    }
     "unknown"
 }
 
@@ -300,7 +329,10 @@ mod tests {
 
     #[test]
     fn test_detect_archive_header() {
-        assert_eq!(detect_archive_header(&[0x50, 0x4B, 0x03, 0x04, 0, 0]), "zip");
+        assert_eq!(
+            detect_archive_header(&[0x50, 0x4B, 0x03, 0x04, 0, 0]),
+            "zip"
+        );
         assert_eq!(detect_archive_header(&[0x1F, 0x8B, 0, 0, 0, 0]), "gzip");
         assert_eq!(detect_archive_header(&[0x00, 0x00, 0, 0, 0, 0]), "unknown");
     }

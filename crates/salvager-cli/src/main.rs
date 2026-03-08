@@ -145,9 +145,23 @@ fn main() {
         Commands::Inspect { input, json } => cmd_inspect(input, json),
         Commands::Version => cmd_version(),
         Commands::Formats => cmd_formats(),
-        Commands::DiskImage { input, output, json } => cmd_disk_image(input, output, json),
-        Commands::Stream { input, output, window_mb, json } => cmd_stream(input, output, window_mb, json),
-        Commands::Plugin { config, input, output, json } => cmd_plugin(config, input, output, json),
+        Commands::DiskImage {
+            input,
+            output,
+            json,
+        } => cmd_disk_image(input, output, json),
+        Commands::Stream {
+            input,
+            output,
+            window_mb,
+            json,
+        } => cmd_stream(input, output, window_mb, json),
+        Commands::Plugin {
+            config,
+            input,
+            output,
+            json,
+        } => cmd_plugin(config, input, output, json),
         Commands::Validate { input } => cmd_validate(input),
     }
 }
@@ -203,10 +217,13 @@ fn cmd_recover(input: PathBuf, output: PathBuf, as_zip: bool, json: bool, quiet:
 
     let report = if let Some(ref pb) = pb {
         let pb_clone = pb.clone();
-        engine.salvage(&data, Some(&move |phase: &str, pct: u32| {
-            pb_clone.set_position(pct as u64);
-            pb_clone.set_message(phase.to_string());
-        }))
+        engine.salvage(
+            &data,
+            Some(&move |phase: &str, pct: u32| {
+                pb_clone.set_position(pct as u64);
+                pb_clone.set_message(phase.to_string());
+            }),
+        )
     } else {
         engine.salvage(&data, None)
     };
@@ -270,10 +287,7 @@ fn cmd_recover(input: PathBuf, output: PathBuf, as_zip: bool, json: bool, quiet:
     } else {
         // Write individual files
         for f in &report.files {
-            let fname = format!(
-                "salvaged_{:04}_{}.{}",
-                f.index, f.file_type, f.extension
-            );
+            let fname = format!("salvaged_{:04}_{}.{}", f.index, f.file_type, f.extension);
             let fpath = output.join(&fname);
             if let Err(e) = std::fs::write(&fpath, &f.data) {
                 eprintln!(
@@ -336,7 +350,10 @@ fn cmd_inspect(input: PathBuf, json: bool) {
             input.display().to_string().white().bold(),
             data.len()
         );
-        print_human_report(&report, std::time::Duration::from_secs_f64(report.salvage_time_secs));
+        print_human_report(
+            &report,
+            std::time::Duration::from_secs_f64(report.salvage_time_secs),
+        );
         eprintln!(
             "\n{}  Dry run — no files written. Use `salvager recover` to extract.",
             "ℹ".blue().bold()
@@ -367,22 +384,52 @@ fn cmd_formats() {
         "Helix Salvager".white().bold()
     );
     println!();
-    println!("{}  Archive Formats (structured extraction):", "▸".cyan().bold());
-    println!("    {:<12} ZIP archives (PKzip, WinZip, etc.)", "ZIP".yellow().bold());
-    println!("    {:<12} 7-Zip archives (LZMA/LZMA2 compressed)", "7z".yellow().bold());
-    println!("    {:<12} RAR archives (v4/v5 header parsing)", "RAR".yellow().bold());
-    println!("    {:<12} GNU zip compressed streams", "GZIP".yellow().bold());
-    println!("    {:<12} bzip2 compressed streams", "BZIP2".yellow().bold());
-    println!("    {:<12} XZ/LZMA2 compressed streams", "XZ".yellow().bold());
-    println!("    {:<12} Tape archives (inside gzip/bzip2/xz)", "TAR".yellow().bold());
+    println!(
+        "{}  Archive Formats (structured extraction):",
+        "▸".cyan().bold()
+    );
+    println!(
+        "    {:<12} ZIP archives (PKzip, WinZip, etc.)",
+        "ZIP".yellow().bold()
+    );
+    println!(
+        "    {:<12} 7-Zip archives (LZMA/LZMA2 compressed)",
+        "7z".yellow().bold()
+    );
+    println!(
+        "    {:<12} RAR archives (v4/v5 header parsing)",
+        "RAR".yellow().bold()
+    );
+    println!(
+        "    {:<12} GNU zip compressed streams",
+        "GZIP".yellow().bold()
+    );
+    println!(
+        "    {:<12} bzip2 compressed streams",
+        "BZIP2".yellow().bold()
+    );
+    println!(
+        "    {:<12} XZ/LZMA2 compressed streams",
+        "XZ".yellow().bold()
+    );
+    println!(
+        "    {:<12} Tape archives (inside gzip/bzip2/xz)",
+        "TAR".yellow().bold()
+    );
     println!();
-    println!("{}  File Signatures (magic-byte carving):", "▸".cyan().bold());
+    println!(
+        "{}  File Signatures (magic-byte carving):",
+        "▸".cyan().bold()
+    );
     println!("    ── Images ──");
     println!("    {:<12} JPEG (FF D8 FF)", "JPEG".green());
     println!("    {:<12} PNG (89 50 4E 47)", "PNG".green());
     println!("    {:<12} GIF (47 49 46 38)", "GIF".green());
     println!("    {:<12} BMP (42 4D + valid size)", "BMP".green());
-    println!("    {:<12} TIFF (49 49 2A 00 / 4D 4D 00 2A)", "TIFF".green());
+    println!(
+        "    {:<12} TIFF (49 49 2A 00 / 4D 4D 00 2A)",
+        "TIFF".green()
+    );
     println!("    {:<12} WebP (RIFF + WEBP)", "WebP".green());
     println!("    {:<12} ICO (00 00 01 00 + valid dir)", "ICO".green());
     println!();
@@ -421,7 +468,9 @@ fn cmd_formats() {
 // ═══════════════════════════════════════════════════════
 
 fn cmd_disk_image(input: PathBuf, output: PathBuf, json: bool) {
-    if !json { print_banner(); }
+    if !json {
+        print_banner();
+    }
 
     eprintln!(
         "{}  Scanning disk image: {} ",
@@ -447,7 +496,10 @@ fn cmd_disk_image(input: PathBuf, output: PathBuf, json: bool) {
         if json {
             println!("{}", serde_json::to_string_pretty(&report).unwrap());
         } else {
-            eprintln!("{}  No recoverable files found in disk image.", "✗".red().bold());
+            eprintln!(
+                "{}  No recoverable files found in disk image.",
+                "✗".red().bold()
+            );
         }
         std::process::exit(2);
     }
@@ -496,7 +548,9 @@ fn cmd_disk_image(input: PathBuf, output: PathBuf, json: bool) {
 // ═══════════════════════════════════════════════════════
 
 fn cmd_stream(input: PathBuf, output: PathBuf, window_mb: usize, json: bool) {
-    if !json { print_banner(); }
+    if !json {
+        print_banner();
+    }
 
     eprintln!(
         "{}  Streaming recovery: {} (window: {} MB)",
@@ -521,11 +575,15 @@ fn cmd_stream(input: PathBuf, output: PathBuf, window_mb: usize, json: bool) {
 
     if report.files.is_empty() {
         if json {
-            println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-                "input_size": report.input_size,
-                "windows_processed": report.windows_processed,
-                "files_salvaged": 0,
-            })).unwrap());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "input_size": report.input_size,
+                    "windows_processed": report.windows_processed,
+                    "files_salvaged": 0,
+                }))
+                .unwrap()
+            );
         } else {
             eprintln!("{}  No recoverable files found.", "✗".red().bold());
         }
@@ -544,14 +602,18 @@ fn cmd_stream(input: PathBuf, output: PathBuf, window_mb: usize, json: bool) {
     }
 
     if json {
-        println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-            "input_size": report.input_size,
-            "windows_processed": report.windows_processed,
-            "files_salvaged": report.files_salvaged,
-            "bytes_recovered": report.bytes_recovered,
-            "method": report.method,
-            "time_secs": report.scan_time_secs,
-        })).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "input_size": report.input_size,
+                "windows_processed": report.windows_processed,
+                "files_salvaged": report.files_salvaged,
+                "bytes_recovered": report.bytes_recovered,
+                "method": report.method,
+                "time_secs": report.scan_time_secs,
+            }))
+            .unwrap()
+        );
     } else {
         eprintln!();
         eprintln!("{}", "─── Stream Report ───".cyan().bold());
@@ -578,7 +640,9 @@ fn cmd_stream(input: PathBuf, output: PathBuf, window_mb: usize, json: bool) {
 // ═══════════════════════════════════════════════════════
 
 fn cmd_plugin(config_path: PathBuf, input: PathBuf, output: PathBuf, json: bool) {
-    if !json { print_banner(); }
+    if !json {
+        print_banner();
+    }
 
     let registry = match salvager_core::PluginRegistry::load_json(&config_path) {
         Ok(r) => r,
@@ -603,7 +667,12 @@ fn cmd_plugin(config_path: PathBuf, input: PathBuf, output: PathBuf, json: bool)
     let data = match std::fs::read(&input) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("{} Cannot read {}: {}", "ERROR".red().bold(), input.display(), e);
+            eprintln!(
+                "{} Cannot read {}: {}",
+                "ERROR".red().bold(),
+                input.display(),
+                e
+            );
             std::process::exit(1);
         }
     };
@@ -682,7 +751,8 @@ fn cmd_validate(input: PathBuf) {
             }
         };
 
-        let ext = p.extension()
+        let ext = p
+            .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("")
             .to_lowercase();
@@ -690,7 +760,11 @@ fn cmd_validate(input: PathBuf) {
         // Build a SalvagedFile wrapper for the validator
         let salvaged = salvager_core::SalvagedFile {
             index: 0,
-            name: p.file_name().unwrap_or_default().to_string_lossy().to_string(),
+            name: p
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
             file_type: ext.clone(),
             extension: ext,
             offset: 0,
@@ -708,14 +782,22 @@ fn cmd_validate(input: PathBuf) {
         };
 
         let conf_delta = if result.confidence_delta >= 0.0 {
-            format!("+{:.0}%", result.confidence_delta * 100.0).green().to_string()
+            format!("+{:.0}%", result.confidence_delta * 100.0)
+                .green()
+                .to_string()
         } else {
-            format!("{:.0}%", result.confidence_delta * 100.0).red().to_string()
+            format!("{:.0}%", result.confidence_delta * 100.0)
+                .red()
+                .to_string()
         };
 
         eprintln!(
             "  {} {} — {} (conf: {})",
-            if result.valid { "✓".green() } else { "✗".red() },
+            if result.valid {
+                "✓".green()
+            } else {
+                "✗".red()
+            },
             p.file_name().unwrap_or_default().to_string_lossy(),
             status,
             conf_delta
@@ -747,8 +829,7 @@ fn print_banner() {
     eprintln!();
     eprintln!(
         "{}",
-        "═══════════════════════════════════════════════════════"
-            .cyan()
+        "═══════════════════════════════════════════════════════".cyan()
     );
     eprintln!(
         "  {} {}",
@@ -757,8 +838,7 @@ fn print_banner() {
     );
     eprintln!(
         "{}",
-        "═══════════════════════════════════════════════════════"
-            .cyan()
+        "═══════════════════════════════════════════════════════".cyan()
     );
     eprintln!();
 }
@@ -770,10 +850,7 @@ fn print_human_report(report: &SalvageReport, elapsed: std::time::Duration) {
         "  Archive type    : {}",
         report.archive_type.to_uppercase().yellow().bold()
     );
-    eprintln!(
-        "  Method          : {}",
-        report.method.white()
-    );
+    eprintln!("  Method          : {}", report.method.white());
     eprintln!(
         "  Input size      : {} bytes",
         format!("{}", report.input_size).white()
@@ -808,10 +885,7 @@ fn print_human_report(report: &SalvageReport, elapsed: std::time::Duration) {
         "  Confidence      : {}",
         format_confidence(report.overall_confidence)
     );
-    eprintln!(
-        "  Time            : {:.3}s",
-        elapsed.as_secs_f64()
-    );
+    eprintln!("  Time            : {:.3}s", elapsed.as_secs_f64());
 
     if !report.type_breakdown.is_empty() {
         eprintln!();

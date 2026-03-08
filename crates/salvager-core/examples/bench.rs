@@ -22,7 +22,9 @@ fn make_zip(target_bytes: usize) -> Vec<u8> {
         let opts = if idx % 2 == 0 { stored } else { deflated };
         w.start_file(&name, opts).unwrap();
         let chunk_size = (target_bytes - written).min(8192);
-        let data: Vec<u8> = (0..chunk_size).map(|i| ((i * 7 + idx) % 256) as u8).collect();
+        let data: Vec<u8> = (0..chunk_size)
+            .map(|i| ((i * 7 + idx) % 256) as u8)
+            .collect();
         w.write_all(&data).unwrap();
         written += chunk_size;
         idx += 1;
@@ -81,11 +83,21 @@ fn bench_one(label: &str, data: &[u8]) {
 
 fn main() {
     println!();
-    println!("╔══════════════════════════════════════════════════════════════════════════════════════╗");
-    println!("║                        HELIX SALVAGER — BENCHMARKS                                  ║");
-    println!("╠══════════════════════════════════════════════════════════════════════════════════════╣");
-    println!("║  Scenario                                    Input      Time  Files    Recovered    ║");
-    println!("╟──────────────────────────────────────────────────────────────────────────────────────╢");
+    println!(
+        "╔══════════════════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "║                        HELIX SALVAGER — BENCHMARKS                                  ║"
+    );
+    println!(
+        "╠══════════════════════════════════════════════════════════════════════════════════════╣"
+    );
+    println!(
+        "║  Scenario                                    Input      Time  Files    Recovered    ║"
+    );
+    println!(
+        "╟──────────────────────────────────────────────────────────────────────────────────────╢"
+    );
 
     // ── Clean ZIP benchmarks ──
     let zip_10k = make_zip(10_000);
@@ -100,7 +112,9 @@ fn main() {
     let zip_10m = make_zip(10_000_000);
     bench_one("Clean ZIP 10 MB", &zip_10m);
 
-    println!("╟──────────────────────────────────────────────────────────────────────────────────────╢");
+    println!(
+        "╟──────────────────────────────────────────────────────────────────────────────────────╢"
+    );
 
     // ── Corrupted ZIP benchmarks ──
     let mut c5 = zip_1m.clone();
@@ -115,7 +129,9 @@ fn main() {
     corrupt(&mut c50, 50);
     bench_one("Corrupt ZIP 1 MB (50% sectors dead)", &c50);
 
-    println!("╟──────────────────────────────────────────────────────────────────────────────────────╢");
+    println!(
+        "╟──────────────────────────────────────────────────────────────────────────────────────╢"
+    );
 
     // ── Raw carving benchmarks ──
     let mut raw = Vec::new();
@@ -148,17 +164,16 @@ fn main() {
     bench_one("Raw carving (20 embedded signatures)", &raw);
 
     // Large raw carving
-    let mut big_raw: Vec<u8> = (0..5_000_000)
-        .map(|i| ((i * 13 + 7) % 256) as u8)
-        .collect();
+    let mut big_raw: Vec<u8> = (0..5_000_000).map(|i| ((i * 13 + 7) % 256) as u8).collect();
     // Plant some real signatures
     big_raw[100_000..100_004].copy_from_slice(&[0xFF, 0xD8, 0xFF, 0xE0]);
-    big_raw[200_000..200_008]
-        .copy_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    big_raw[200_000..200_008].copy_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
     big_raw[300_000..300_009].copy_from_slice(b"%PDF-1.7 ");
     bench_one("Raw carving 5 MB (3 planted sigs)", &big_raw);
 
-    println!("╟──────────────────────────────────────────────────────────────────────────────────────╢");
+    println!(
+        "╟──────────────────────────────────────────────────────────────────────────────────────╢"
+    );
 
     // ── All zeros / noise (worst case) ──
     let zeros = vec![0x00; 1_000_000];
@@ -169,6 +184,8 @@ fn main() {
         .collect();
     bench_one("Random noise 1 MB (no recovery)", &noise);
 
-    println!("╚══════════════════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "╚══════════════════════════════════════════════════════════════════════════════════════╝"
+    );
     println!();
 }

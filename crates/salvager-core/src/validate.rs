@@ -183,9 +183,7 @@ fn validate_jpeg(data: &[u8]) -> ValidationResult {
     }
 
     // Check for EOI (FF D9) at end
-    let has_eoi = data.len() >= 2
-        && data[data.len() - 2] == 0xFF
-        && data[data.len() - 1] == 0xD9;
+    let has_eoi = data.len() >= 2 && data[data.len() - 2] == 0xFF && data[data.len() - 1] == 0xD9;
 
     if !has_eoi {
         issues.push(ValidationIssue {
@@ -236,13 +234,20 @@ fn validate_png(data: &[u8]) -> ValidationResult {
         if pos + 8 > data.len() {
             break;
         }
-        let length = u32::from_be_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]) as usize;
+        let length =
+            u32::from_be_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]) as usize;
         let chunk_type = &data[pos + 4..pos + 8];
 
         if chunk_type == b"IHDR" && pos + 12 + 8 <= data.len() {
             has_ihdr = true;
-            let width = u32::from_be_bytes([data[pos + 8], data[pos + 9], data[pos + 10], data[pos + 11]]);
-            let height = u32::from_be_bytes([data[pos + 12], data[pos + 13], data[pos + 14], data[pos + 15]]);
+            let width =
+                u32::from_be_bytes([data[pos + 8], data[pos + 9], data[pos + 10], data[pos + 11]]);
+            let height = u32::from_be_bytes([
+                data[pos + 12],
+                data[pos + 13],
+                data[pos + 14],
+                data[pos + 15],
+            ]);
             notes.push(format!("Dimensions: {}x{}", width, height));
         }
 
@@ -421,7 +426,11 @@ fn validate_bmp(data: &[u8]) -> ValidationResult {
         vec![ValidationIssue {
             severity: IssueSeverity::Warning,
             offset: 2,
-            description: format!("Declared size {} doesn't match actual {}", file_size, data.len()),
+            description: format!(
+                "Declared size {} doesn't match actual {}",
+                file_size,
+                data.len()
+            ),
         }]
     } else {
         Vec::new()
@@ -485,7 +494,10 @@ fn validate_sqlite(data: &[u8]) -> ValidationResult {
 
     let notes = vec![
         format!("Page size: {} bytes", page_size),
-        format!("Database size: {} pages", u32::from_be_bytes([data[28], data[29], data[30], data[31]])),
+        format!(
+            "Database size: {} pages",
+            u32::from_be_bytes([data[28], data[29], data[30], data[31]])
+        ),
     ];
 
     ValidationResult {
@@ -619,7 +631,8 @@ fn validate_flac(data: &[u8]) -> ValidationResult {
 
     let block_size = u32::from_be_bytes([0, data[5], data[6], data[7]]) as usize;
     if block_size >= 34 && data.len() >= 8 + block_size {
-        let sample_rate = ((data[18] as u32) << 12) | ((data[19] as u32) << 4) | ((data[20] as u32) >> 4);
+        let sample_rate =
+            ((data[18] as u32) << 12) | ((data[19] as u32) << 4) | ((data[20] as u32) >> 4);
         let channels = ((data[20] >> 1) & 0x07) + 1;
         let bps = ((data[20] & 1) as u32) << 4 | (data[21] >> 4) as u32;
 
@@ -662,8 +675,7 @@ fn validate_ogg(data: &[u8]) -> ValidationResult {
     }
 
     let granule_pos = u64::from_le_bytes([
-        data[6], data[7], data[8], data[9],
-        data[10], data[11], data[12], data[13],
+        data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13],
     ]);
 
     let serial = u32::from_le_bytes([data[14], data[15], data[16], data[17]]);
@@ -691,7 +703,10 @@ fn validate_mp3(data: &[u8]) -> ValidationResult {
     if data.len() >= 10 && &data[..3] == b"ID3" {
         let version_major = data[3];
         let version_minor = data[4];
-        notes.push(format!("ID3v2.{}.{} tag present", version_major, version_minor));
+        notes.push(format!(
+            "ID3v2.{}.{} tag present",
+            version_major, version_minor
+        ));
 
         // Calculate tag size (syncsafe integer)
         let tag_size = ((data[6] as usize) << 21)
@@ -702,7 +717,9 @@ fn validate_mp3(data: &[u8]) -> ValidationResult {
     }
 
     // Check for frame sync
-    let has_sync = data.windows(2).any(|w| w[0] == 0xFF && (w[1] & 0xE0) == 0xE0);
+    let has_sync = data
+        .windows(2)
+        .any(|w| w[0] == 0xFF && (w[1] & 0xE0) == 0xE0);
 
     if has_sync {
         notes.push("Frame sync found".into());
@@ -744,7 +761,11 @@ fn validate_tiff(data: &[u8]) -> ValidationResult {
         u32::from_le_bytes([data[4], data[5], data[6], data[7]]) as usize
     };
 
-    let endian_str = if big_endian { "big-endian (Motorola)" } else { "little-endian (Intel)" };
+    let endian_str = if big_endian {
+        "big-endian (Motorola)"
+    } else {
+        "little-endian (Intel)"
+    };
 
     ValidationResult {
         valid: true,
@@ -823,7 +844,7 @@ mod tests {
         data.extend(vec![0x00, 0x00, 0x01, 0x00]); // height 256
         data.extend(vec![0x08, 0x02, 0x00, 0x00, 0x00]); // bit depth, color type, etc.
         data.extend(vec![0x00, 0x00, 0x00, 0x00]); // CRC (fake)
-        // IEND chunk
+                                                   // IEND chunk
         data.extend(vec![0x00, 0x00, 0x00, 0x00]); // length 0
         data.extend(b"IEND");
         data.extend(vec![0x00, 0x00, 0x00, 0x00]); // CRC (fake)
@@ -860,9 +881,10 @@ mod tests {
 
     #[test]
     fn test_validate_and_adjust() {
-        let mut files = vec![
-            make_file("pdf", b"%PDF-1.4 test content xref startxref %%EOF".to_vec()),
-        ];
+        let mut files = vec![make_file(
+            "pdf",
+            b"%PDF-1.4 test content xref startxref %%EOF".to_vec(),
+        )];
         let original_confidence = files[0].confidence;
         validate_and_adjust(&mut files);
         assert!(files[0].confidence > original_confidence);

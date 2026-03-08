@@ -77,15 +77,17 @@ pub struct PluginRegistry {
 
 impl PluginRegistry {
     pub fn new() -> Self {
-        Self { signatures: Vec::new() }
+        Self {
+            signatures: Vec::new(),
+        }
     }
 
     /// Load signatures from a JSON file.
     pub fn load_json<P: AsRef<Path>>(path: P) -> Result<Self, PluginError> {
-        let content = std::fs::read_to_string(path.as_ref())
-            .map_err(|e| PluginError::Io(e.to_string()))?;
-        let config: PluginConfig = serde_json::from_str(&content)
-            .map_err(|e| PluginError::Parse(e.to_string()))?;
+        let content =
+            std::fs::read_to_string(path.as_ref()).map_err(|e| PluginError::Io(e.to_string()))?;
+        let config: PluginConfig =
+            serde_json::from_str(&content).map_err(|e| PluginError::Parse(e.to_string()))?;
 
         let mut registry = Self::new();
         for sig in config.signatures {
@@ -96,8 +98,8 @@ impl PluginRegistry {
 
     /// Load signatures from a JSON string.
     pub fn load_json_str(json: &str) -> Result<Self, PluginError> {
-        let config: PluginConfig = serde_json::from_str(json)
-            .map_err(|e| PluginError::Parse(e.to_string()))?;
+        let config: PluginConfig =
+            serde_json::from_str(json).map_err(|e| PluginError::Parse(e.to_string()))?;
 
         let mut registry = Self::new();
         for sig in config.signatures {
@@ -109,14 +111,16 @@ impl PluginRegistry {
     /// Add a single custom signature, validating it first.
     pub fn add_signature(&mut self, sig: CustomSignature) -> Result<(), PluginError> {
         // Validate hex magic
-        let magic_bytes = decode_hex(&sig.magic)
-            .map_err(|_| PluginError::InvalidMagic(sig.magic.clone()))?;
+        let magic_bytes =
+            decode_hex(&sig.magic).map_err(|_| PluginError::InvalidMagic(sig.magic.clone()))?;
 
         if magic_bytes.is_empty() {
             return Err(PluginError::InvalidMagic("empty magic bytes".into()));
         }
         if magic_bytes.len() > 32 {
-            return Err(PluginError::InvalidMagic("magic too long (max 32 bytes)".into()));
+            return Err(PluginError::InvalidMagic(
+                "magic too long (max 32 bytes)".into(),
+            ));
         }
         if sig.extension.is_empty() || sig.extension.len() > 10 {
             return Err(PluginError::InvalidExtension(sig.extension.clone()));
@@ -225,7 +229,7 @@ impl std::error::Error for PluginError {}
 #[allow(clippy::result_unit_err)]
 pub fn decode_hex(hex: &str) -> Result<Vec<u8>, ()> {
     let hex = hex.trim();
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         return Err(());
     }
     let mut bytes = Vec::with_capacity(hex.len() / 2);
@@ -246,7 +250,10 @@ mod tests {
 
     #[test]
     fn test_decode_hex() {
-        assert_eq!(decode_hex("89504E47").unwrap(), vec![0x89, 0x50, 0x4E, 0x47]);
+        assert_eq!(
+            decode_hex("89504E47").unwrap(),
+            vec![0x89, 0x50, 0x4E, 0x47]
+        );
         assert_eq!(decode_hex("FF").unwrap(), vec![0xFF]);
         assert!(decode_hex("GG").is_err());
         assert!(decode_hex("F").is_err()); // odd length
@@ -337,7 +344,8 @@ mod tests {
             end_marker: None,
             mime_type: None,
             description: None,
-        }).unwrap();
+        })
+        .unwrap();
 
         let mut r2 = PluginRegistry::new();
         r2.add_signature(CustomSignature {
@@ -349,7 +357,8 @@ mod tests {
             end_marker: None,
             mime_type: None,
             description: None,
-        }).unwrap();
+        })
+        .unwrap();
 
         r1.merge(r2);
         assert_eq!(r1.len(), 2);

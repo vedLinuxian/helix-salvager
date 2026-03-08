@@ -337,15 +337,14 @@ impl ZombieLzmaDecoder {
 
             // Fast-fail: must start with a valid LZMA properties byte
             if !is_valid_lzma_props(window[0]) {
-                let (sync_offset, probe_bytes) =
-                    self.force_resynchronize(&input[pos..], stats);
+                let (sync_offset, probe_bytes) = self.force_resynchronize(&input[pos..], stats);
                 // Zero-pad
                 let gap_size = sync_offset.min(PROBE_WINDOW);
                 if gap_size > 0 {
                     let base = output.len();
                     taint.grow_to(base + gap_size);
                     taint.set_range(base, base + gap_size);
-                    output.extend(std::iter::repeat(0u8).take(gap_size));
+                    output.extend(std::iter::repeat_n(0u8, gap_size));
                     stats.bytes_zeroed += gap_size;
                 }
                 if !probe_bytes.is_empty() {
@@ -376,15 +375,14 @@ impl ZombieLzmaDecoder {
                         let pad = decoded.len().max(PROBE_WINDOW);
                         taint.grow_to(base + pad);
                         taint.set_range(base, base + pad);
-                        output.extend(std::iter::repeat(0u8).take(pad));
+                        output.extend(std::iter::repeat_n(0u8, pad));
                         stats.bytes_zeroed += pad;
                         pos += 1; // slide forward
                     }
                 }
                 _ => {
                     // Decode failed — try force_resynchronize
-                    let (sync_offset, probe_bytes) =
-                        self.force_resynchronize(&input[pos..], stats);
+                    let (sync_offset, probe_bytes) = self.force_resynchronize(&input[pos..], stats);
 
                     // Zero-pad the undecodable gap
                     let gap_size = sync_offset.min(PROBE_WINDOW);
@@ -392,7 +390,7 @@ impl ZombieLzmaDecoder {
                         let base = output.len();
                         taint.grow_to(base + gap_size);
                         taint.set_range(base, base + gap_size);
-                        output.extend(std::iter::repeat(0u8).take(gap_size));
+                        output.extend(std::iter::repeat_n(0u8, gap_size));
                         stats.bytes_zeroed += gap_size;
                     }
 
@@ -430,11 +428,7 @@ impl ZombieLzmaDecoder {
     /// - Accept if output length >= MIN_PROGRESS_BYTES and entropy passes
     ///
     /// Returns `(bytes_skipped, probe_output)`.
-    pub fn force_resynchronize(
-        &self,
-        input: &[u8],
-        stats: &mut ZombieStats,
-    ) -> (usize, Vec<u8>) {
+    pub fn force_resynchronize(&self, input: &[u8], stats: &mut ZombieStats) -> (usize, Vec<u8>) {
         stats.resync_count += 1;
 
         for slide in 1..self.max_slide.min(input.len()) {
@@ -580,7 +574,7 @@ pub fn zombie_scan_and_decode(data: &[u8]) -> (Vec<u8>, TaintMap, ZombieStats) {
             let total_len = slide + probe.len();
             let mut taint = TaintMap::new(total_len);
             // Bytes before the sync point were skipped → mark as tainted.
-            best_output.extend(std::iter::repeat(0u8).take(slide));
+            best_output.extend(std::iter::repeat_n(0u8, slide));
             best_output.extend_from_slice(&probe);
             // Only the zero-padded gap is tainted; probe bytes are decoded successfully.
             taint.set_range(0, slide);
@@ -666,7 +660,11 @@ mod tests {
         // All same byte → H = 0
         let data = vec![0x00u8; 1024];
         let h = shannon_entropy(&data);
-        assert!(h < 0.001, "uniform data should have near-zero entropy, got {}", h);
+        assert!(
+            h < 0.001,
+            "uniform data should have near-zero entropy, got {}",
+            h
+        );
     }
 
     #[test]
@@ -682,7 +680,11 @@ mod tests {
         // ASCII text has medium entropy (typically 4–6 bits)
         let text = b"Hello, World! This is a test of the Shannon entropy function.";
         let h = shannon_entropy(text);
-        assert!(h > 3.0 && h < 7.0, "text entropy should be in [3,7], got {}", h);
+        assert!(
+            h > 3.0 && h < 7.0,
+            "text entropy should be in [3,7], got {}",
+            h
+        );
     }
 
     #[test]
@@ -758,9 +760,16 @@ mod tests {
         let d = ZombieLzmaDecoder::new();
         let (out, taint, stats) = d.decode(&encoded);
         assert!(!out.is_empty(), "should decode valid LZMA stream");
-        assert_eq!(taint.taint_count(), 0, "clean stream should have zero taint");
+        assert_eq!(
+            taint.taint_count(),
+            0,
+            "clean stream should have zero taint"
+        );
         assert_eq!(stats.resync_count, 0, "no resyncs needed for valid stream");
-        assert_eq!(&out[..out.len().min(original.len())], &original[..out.len().min(original.len())]);
+        assert_eq!(
+            &out[..out.len().min(original.len())],
+            &original[..out.len().min(original.len())]
+        );
     }
 
     #[test]
@@ -794,13 +803,14 @@ mod tests {
 
         // Prepend 50 bytes of garbage, then a valid entropy region.
         let mut data = vec![0x00u8; 50]; // flat garbage
-        // Append a text-like region with good entropy.
-        let good_data: Vec<u8> = b"The quick brown fox jumps over the lazy dog. 1234567890!@#$%^&*()"
-            .iter()
-            .cycle()
-            .take(256)
-            .cloned()
-            .collect();
+                                         // Append a text-like region with good entropy.
+        let good_data: Vec<u8> =
+            b"The quick brown fox jumps over the lazy dog. 1234567890!@#$%^&*()"
+                .iter()
+                .cycle()
+                .take(256)
+                .cloned()
+                .collect();
         data.extend_from_slice(&good_data);
 
         let (slide, probe) = d.force_resynchronize(&data, &mut stats);

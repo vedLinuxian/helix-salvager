@@ -32,22 +32,27 @@ fn make_tiny_jpeg() -> Vec<u8> {
     // SOI marker
     let mut j = vec![0xFF, 0xD8, 0xFF, 0xE0];
     // JFIF header
-    j.extend_from_slice(&[0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-                           0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]);
+    j.extend_from_slice(&[
+        0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x00,
+    ]);
     // DQT marker (quantization table)
     j.extend_from_slice(&[0xFF, 0xDB, 0x00, 0x43, 0x00]);
-    j.extend(std::iter::repeat(0x10u8).take(64));
+    j.extend(std::iter::repeat_n(0x10u8, 64));
     // SOF marker (1x1, Y only)
-    j.extend_from_slice(&[0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00,
-                           0x01, 0x01, 0x01, 0x11, 0x00]);
+    j.extend_from_slice(&[
+        0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00,
+    ]);
     // DHT marker (Huffman table, minimal DC)
-    j.extend_from_slice(&[0xFF, 0xC4, 0x00, 0x1F, 0x00, 0x00, 0x01, 0x05,
-                           0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00,
-                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02,
-                           0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B]);
+    j.extend_from_slice(&[
+        0xFF, 0xC4, 0x00, 0x1F, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B,
+    ]);
     // SOS marker + minimal scan data
-    j.extend_from_slice(&[0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00,
-                           0x3F, 0x00, 0x7B, 0x40]);
+    j.extend_from_slice(&[
+        0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x7B, 0x40,
+    ]);
     // EOI
     j.extend_from_slice(&[0xFF, 0xD9]);
     j
@@ -59,11 +64,13 @@ fn make_tiny_png() -> Vec<u8> {
     // PNG signature
     p.extend_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
     // IHDR chunk (1x1, 8-bit RGB)
-    let ihdr_data = [0x00, 0x00, 0x00, 0x01, // width=1
-                     0x00, 0x00, 0x00, 0x01, // height=1
-                     0x08,                     // bit depth=8
-                     0x02,                     // color type=RGB
-                     0x00, 0x00, 0x00];        // compression, filter, interlace
+    let ihdr_data = [
+        0x00, 0x00, 0x00, 0x01, // width=1
+        0x00, 0x00, 0x00, 0x01, // height=1
+        0x08, // bit depth=8
+        0x02, // color type=RGB
+        0x00, 0x00, 0x00,
+    ]; // compression, filter, interlace
     let ihdr_crc = crc32(b"IHDR", &ihdr_data);
     p.extend_from_slice(&(ihdr_data.len() as u32).to_be_bytes());
     p.extend_from_slice(b"IHDR");
@@ -92,7 +99,8 @@ fn make_tiny_pdf() -> Vec<u8> {
       3 0 obj<</Type/Page/MediaBox[0 0 3 3]/Parent 2 0 R>>endobj\n\
       xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n\
       0000000058 00000 n \n0000000115 00000 n \n\
-      trailer<</Size 4/Root 1 0 R>>\nstartxref\n189\n%%EOF\n".to_vec()
+      trailer<</Size 4/Root 1 0 R>>\nstartxref\n189\n%%EOF\n"
+        .to_vec()
 }
 
 /// Simple CRC32 for PNG chunks
@@ -117,7 +125,7 @@ fn deflate_compress(data: &[u8]) -> Vec<u8> {
     // zlib header
     out.push(0x78); // CMF: deflate, window=32768
     out.push(0x01); // FLG: no dict, check bits
-    // Stored block (final=1, type=00)
+                    // Stored block (final=1, type=00)
     out.push(0x01); // BFINAL=1, BTYPE=00 (stored)
     let len = data.len() as u16;
     out.extend_from_slice(&len.to_le_bytes());
@@ -143,8 +151,8 @@ fn adler32(data: &[u8]) -> u32 {
 fn make_test_zip(file_count: usize) -> Vec<u8> {
     let buf = Cursor::new(Vec::new());
     let mut writer = zip::ZipWriter::new(buf);
-    let opts = zip::write::SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Stored);
+    let opts =
+        zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     let jpeg = make_tiny_jpeg();
     let png = make_tiny_png();
@@ -154,19 +162,27 @@ fn make_test_zip(file_count: usize) -> Vec<u8> {
     for i in 0..file_count {
         match i % 4 {
             0 => {
-                writer.start_file(format!("photo_{:03}.jpg", i), opts).unwrap();
+                writer
+                    .start_file(format!("photo_{:03}.jpg", i), opts)
+                    .unwrap();
                 writer.write_all(&jpeg).unwrap();
             }
             1 => {
-                writer.start_file(format!("image_{:03}.png", i), opts).unwrap();
+                writer
+                    .start_file(format!("image_{:03}.png", i), opts)
+                    .unwrap();
                 writer.write_all(&png).unwrap();
             }
             2 => {
-                writer.start_file(format!("doc_{:03}.pdf", i), opts).unwrap();
+                writer
+                    .start_file(format!("doc_{:03}.pdf", i), opts)
+                    .unwrap();
                 writer.write_all(&pdf).unwrap();
             }
             _ => {
-                writer.start_file(format!("note_{:03}.txt", i), opts).unwrap();
+                writer
+                    .start_file(format!("note_{:03}.txt", i), opts)
+                    .unwrap();
                 writer.write_all(&txt).unwrap();
             }
         }
@@ -182,10 +198,13 @@ fn make_test_zip_deflated(file_count: usize) -> Vec<u8> {
     let opts = zip::write::SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated);
 
-    let txt = b"The quick brown fox jumps over the lazy dog. Repeated text for compression ratio. ".to_vec();
+    let txt = b"The quick brown fox jumps over the lazy dog. Repeated text for compression ratio. "
+        .to_vec();
 
     for i in 0..file_count {
-        writer.start_file(format!("file_{:03}.txt", i), opts).unwrap();
+        writer
+            .start_file(format!("file_{:03}.txt", i), opts)
+            .unwrap();
         // Write repeated data for reasonable compression
         for _ in 0..10 {
             writer.write_all(&txt).unwrap();
@@ -210,7 +229,9 @@ fn corrupt_central_dir(data: &mut [u8], percent: usize) {
 /// Random byte flips simulating bit rot
 fn corrupt_random_flips(data: &mut [u8], count: usize) {
     let len = data.len();
-    if len == 0 { return; }
+    if len == 0 {
+        return;
+    }
     // Deterministic "random" using a simple LCG
     let mut seed: u64 = 0xDEAD_BEEF_CAFE_BABE;
     for _ in 0..count {
@@ -260,10 +281,14 @@ fn corrupt_insert_garbage(data: &mut [u8], block_size: usize, interval: usize) {
 /// Single-bit errors scattered throughout
 fn corrupt_single_bit_errors(data: &mut [u8], count: usize) {
     let len = data.len();
-    if len == 0 { return; }
+    if len == 0 {
+        return;
+    }
     let mut seed: u64 = 0x1234_5678_9ABC_DEF0;
     for _ in 0..count {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        seed = seed
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         let pos = (seed >> 16) as usize % len;
         let bit = (seed >> 8) as u32 % 8;
         data[pos] ^= 1 << bit;
@@ -282,10 +307,16 @@ fn run(data: &[u8]) -> SalvageReport {
 fn assert_no_panic(label: &str, data: &[u8]) -> SalvageReport {
     // The most fundamental requirement: NEVER crash
     let report = run(data);
-    println!("[{}] type={}, method={}, files={}, bytes={}, rate={}%, time={}s",
-        label, report.archive_type, report.method,
-        report.files_salvaged, report.total_salvaged_bytes,
-        report.salvage_rate_percent, report.salvage_time_secs);
+    println!(
+        "[{}] type={}, method={}, files={}, bytes={}, rate={}%, time={}s",
+        label,
+        report.archive_type,
+        report.method,
+        report.files_salvaged,
+        report.total_salvaged_bytes,
+        report.salvage_rate_percent,
+        report.salvage_time_secs
+    );
     report
 }
 
@@ -298,7 +329,10 @@ fn stress_valid_zip_8_files() {
     let data = make_test_zip(8);
     let r = assert_no_panic("valid_8", &data);
     assert_eq!(r.archive_type, "zip");
-    assert_eq!(r.files_salvaged, 8, "All 8 files should be extracted from valid ZIP");
+    assert_eq!(
+        r.files_salvaged, 8,
+        "All 8 files should be extracted from valid ZIP"
+    );
     assert_eq!(r.crc_errors_ignored, 0);
 }
 
@@ -330,8 +364,10 @@ fn stress_central_dir_zeroed_30pct() {
     corrupt_central_dir(&mut data, 30);
     let r = assert_no_panic("cd_zeroed_30", &data);
     // Heavier CD damage — may fall back to raw carving
-    assert!(r.files_salvaged > 0 || r.method.contains("Carve"),
-        "Should either recover files or fall back to carving");
+    assert!(
+        r.files_salvaged > 0 || r.method.contains("Carve"),
+        "Should either recover files or fall back to carving"
+    );
 }
 
 // ═══════════════════════════════════════════════════════
@@ -345,7 +381,11 @@ fn stress_random_flips_light() {
     let r = assert_no_panic("flips_5", &data);
     assert_eq!(r.archive_type, "zip");
     // 5 random flips in a multi-KB file — most files should survive
-    assert!(r.files_salvaged >= 4, "Light bit rot: expected >=4 files, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 4,
+        "Light bit rot: expected >=4 files, got {}",
+        r.files_salvaged
+    );
 }
 
 #[test]
@@ -375,7 +415,11 @@ fn stress_truncated_75pct() {
     let r = assert_no_panic("truncated_75", &data);
     assert_eq!(r.archive_type, "zip");
     // First ~6 files should be extractable from the surviving portion
-    assert!(r.files_salvaged >= 3, "75% file: expected >=3 files, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 3,
+        "75% file: expected >=3 files, got {}",
+        r.files_salvaged
+    );
 }
 
 #[test]
@@ -383,7 +427,11 @@ fn stress_truncated_50pct() {
     let mut data = make_test_zip(8);
     corrupt_truncate(&mut data, 50);
     let r = assert_no_panic("truncated_50", &data);
-    assert!(r.files_salvaged >= 2, "50% file: expected >=2 files, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 2,
+        "50% file: expected >=2 files, got {}",
+        r.files_salvaged
+    );
 }
 
 #[test]
@@ -413,7 +461,10 @@ fn stress_header_destroyed() {
     let r = assert_no_panic("header_gone", &data);
     // ZIP magic at offset 0 is destroyed — engine must detect as unknown or
     // try raw carving. The local file headers at later offsets may still work.
-    println!("  Header destroyed: {} files via {}", r.files_salvaged, r.method);
+    println!(
+        "  Header destroyed: {} files via {}",
+        r.files_salvaged, r.method
+    );
 }
 
 // ═══════════════════════════════════════════════════════
@@ -525,8 +576,8 @@ fn stress_very_small_zip() {
     // ZIP with a single 1-byte file
     let buf = Cursor::new(Vec::new());
     let mut writer = zip::ZipWriter::new(buf);
-    let opts = zip::write::SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Stored);
+    let opts =
+        zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     writer.start_file("a.txt", opts).unwrap();
     writer.write_all(b"X").unwrap();
     let data = writer.finish().unwrap().into_inner();
@@ -548,8 +599,10 @@ fn stress_raw_carve_jpeg_in_noise() {
     let r = assert_no_panic("carve_jpeg", &data);
     assert_eq!(r.archive_type, "unknown");
     assert!(r.files_salvaged >= 1, "Should carve at least the JPEG");
-    assert!(r.files.iter().any(|f| f.file_type.contains("JPEG")),
-        "Should identify the carved file as JPEG");
+    assert!(
+        r.files.iter().any(|f| f.file_type.contains("JPEG")),
+        "Should identify the carved file as JPEG"
+    );
 }
 
 #[test]
@@ -566,7 +619,11 @@ fn stress_raw_carve_multiple_types() {
 
     let r = assert_no_panic("carve_multi", &data);
     assert_eq!(r.archive_type, "unknown");
-    assert!(r.files_salvaged >= 2, "Should carve at least 2 embedded files, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 2,
+        "Should carve at least 2 embedded files, got {}",
+        r.files_salvaged
+    );
 
     let types: Vec<&str> = r.files.iter().map(|f| f.file_type.as_str()).collect();
     println!("  Carved types: {:?}", types);
@@ -583,7 +640,11 @@ fn stress_raw_carve_back_to_back() {
     data.extend_from_slice(&jpeg); // second JPEG
 
     let r = assert_no_panic("carve_adjacent", &data);
-    assert!(r.files_salvaged >= 2, "Back-to-back carving: expected >=2, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 2,
+        "Back-to-back carving: expected >=2, got {}",
+        r.files_salvaged
+    );
 }
 
 // ═══════════════════════════════════════════════════════
@@ -598,7 +659,10 @@ fn stress_concatenated_zips() {
     data.extend_from_slice(&zip2);
     let r = assert_no_panic("concat_zips", &data);
     // First ZIP should be extracted; second may or may not be found
-    assert!(r.files_salvaged >= 3, "Should extract at least the first ZIP's files");
+    assert!(
+        r.files_salvaged >= 3,
+        "Should extract at least the first ZIP's files"
+    );
 }
 
 // ═══════════════════════════════════════════════════════
@@ -628,7 +692,7 @@ fn stress_fake_7z_header() {
     let mut data = vec![0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]; // 7z magic
     data.extend(vec![0x00; 32]); // 7z header area
     data.extend(vec![0x42; 5000]); // garbage payload
-    // Embed a JPEG so raw carving has something to find
+                                   // Embed a JPEG so raw carving has something to find
     data.extend_from_slice(&make_tiny_jpeg());
     data.extend(vec![0x43; 500]);
 
@@ -670,13 +734,20 @@ fn stress_pack_roundtrip() {
     // Verify the output ZIP is valid and contains all files
     let reader = Cursor::new(&packed);
     let archive = zip::ZipArchive::new(reader).unwrap();
-    assert_eq!(archive.len(), 6, "Packed ZIP should contain exactly 6 files");
+    assert_eq!(
+        archive.len(),
+        6,
+        "Packed ZIP should contain exactly 6 files"
+    );
 
     // Verify SHA-256 hashes are present and look valid
     for f in &report.files {
         assert_eq!(f.sha256.len(), 64, "SHA-256 should be 64 hex chars");
-        assert!(f.sha256.chars().all(|c| c.is_ascii_hexdigit()),
-            "SHA-256 should be hex: {}", f.sha256);
+        assert!(
+            f.sha256.chars().all(|c| c.is_ascii_hexdigit()),
+            "SHA-256 should be hex: {}",
+            f.sha256
+        );
     }
 }
 
@@ -692,7 +763,11 @@ fn stress_large_zip_performance() {
     let r = assert_no_panic("perf_100", &data);
     let elapsed = start.elapsed();
     assert_eq!(r.files_salvaged, 100);
-    assert!(elapsed.as_secs() < 10, "100-file ZIP took too long: {:?}", elapsed);
+    assert!(
+        elapsed.as_secs() < 10,
+        "100-file ZIP took too long: {:?}",
+        elapsed
+    );
     println!("  Performance: 100 files in {:?}", elapsed);
 }
 
@@ -705,8 +780,15 @@ fn stress_large_corrupt_zip_performance() {
     let start = std::time::Instant::now();
     let r = assert_no_panic("perf_100_corrupt", &data);
     let elapsed = start.elapsed();
-    assert!(elapsed.as_secs() < 30, "100-file corrupt ZIP took too long: {:?}", elapsed);
-    println!("  Performance (corrupt): {} files in {:?}", r.files_salvaged, elapsed);
+    assert!(
+        elapsed.as_secs() < 30,
+        "100-file corrupt ZIP took too long: {:?}",
+        elapsed
+    );
+    println!(
+        "  Performance (corrupt): {} files in {:?}",
+        r.files_salvaged, elapsed
+    );
 }
 
 // ═══════════════════════════════════════════════════════
@@ -724,7 +806,10 @@ fn stress_type_detection_accuracy() {
     let pdf_count = report.files.iter().filter(|f| f.extension == "pdf").count();
     let txt_count = report.files.iter().filter(|f| f.extension == "txt").count();
 
-    println!("  Type detection: {} JPEG, {} PNG, {} PDF, {} TXT", jpeg_count, png_count, pdf_count, txt_count);
+    println!(
+        "  Type detection: {} JPEG, {} PNG, {} PDF, {} TXT",
+        jpeg_count, png_count, pdf_count, txt_count
+    );
     assert_eq!(jpeg_count, 2, "Should detect 2 JPEGs");
     assert_eq!(png_count, 2, "Should detect 2 PNGs");
     assert_eq!(pdf_count, 2, "Should detect 2 PDFs");
@@ -751,8 +836,12 @@ fn stress_jpeg_end_marker_trim() {
     if let Some(f) = carved.files.first() {
         // The carved JPEG should be trimmed to the FF D9 end marker,
         // NOT include the 10KB of trailing garbage
-        assert!(f.size <= jpeg_len + 10,
-            "JPEG should be trimmed to ~{} bytes, got {} bytes", jpeg_len, f.size);
+        assert!(
+            f.size <= jpeg_len + 10,
+            "JPEG should be trimmed to ~{} bytes, got {} bytes",
+            jpeg_len,
+            f.size
+        );
         println!("  JPEG trimmed: original={}, carved={}", jpeg_len, f.size);
     }
 }
@@ -774,8 +863,12 @@ fn stress_png_end_marker_trim() {
 
     assert!(carved.files_salvaged >= 1);
     if let Some(f) = carved.files.first() {
-        assert!(f.size <= png_len + 10,
-            "PNG should be trimmed to ~{} bytes, got {}", png_len, f.size);
+        assert!(
+            f.size <= png_len + 10,
+            "PNG should be trimmed to ~{} bytes, got {}",
+            png_len,
+            f.size
+        );
     }
 }
 
@@ -796,8 +889,12 @@ fn stress_pdf_end_marker_trim() {
 
     assert!(carved.files_salvaged >= 1);
     if let Some(f) = carved.files.first() {
-        assert!(f.size <= pdf_len + 10,
-            "PDF should be trimmed to ~{} bytes, got {}", pdf_len, f.size);
+        assert!(
+            f.size <= pdf_len + 10,
+            "PDF should be trimmed to ~{} bytes, got {}",
+            pdf_len,
+            f.size
+        );
     }
 }
 
@@ -826,10 +923,16 @@ fn stress_zombie_lzma_valid_roundtrip() {
     assert!(!output.is_empty(), "Should decode valid LZMA");
     assert_eq!(taint.taint_count(), 0, "Clean stream = zero taint");
     assert_eq!(stats.resync_count, 0, "No resyncs on valid stream");
-    assert_eq!(&output[..original.len().min(output.len())],
-               &original[..original.len().min(output.len())],
-               "Decoded content should match original");
-    println!("  LZMA roundtrip: {} bytes in, {} bytes out, 0 taint", encoded.len(), output.len());
+    assert_eq!(
+        &output[..original.len().min(output.len())],
+        &original[..original.len().min(output.len())],
+        "Decoded content should match original"
+    );
+    println!(
+        "  LZMA roundtrip: {} bytes in, {} bytes out, 0 taint",
+        encoded.len(),
+        output.len()
+    );
 }
 
 #[test]
@@ -839,7 +942,9 @@ fn stress_zombie_lzma_corrupt_middle() {
     let original = b"AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL \
                      MMMM NNNN OOOO PPPP QQQQ RRRR SSSS TTTT UUUU VVVV WWWW XXXX";
     let encoded = lzma_encode(original);
-    if encoded.is_empty() { return; }
+    if encoded.is_empty() {
+        return;
+    }
 
     let mut corrupted = encoded.clone();
     let mid = corrupted.len() / 2;
@@ -854,8 +959,12 @@ fn stress_zombie_lzma_corrupt_middle() {
     let decoder = ZombieLzmaDecoder::new();
     let (output, taint, stats) = decoder.decode(&corrupted);
     // Should not crash, should return something
-    println!("  LZMA corrupt middle: {} out, {} tainted, {} resyncs",
-        output.len(), taint.taint_count(), stats.resync_count);
+    println!(
+        "  LZMA corrupt middle: {} out, {} tainted, {} resyncs",
+        output.len(),
+        taint.taint_count(),
+        stats.resync_count
+    );
 }
 
 #[test]
@@ -864,7 +973,9 @@ fn stress_zombie_lzma_header_destroyed() {
 
     let original = b"Hello World from zombie LZMA! Testing header destruction recovery.";
     let encoded = lzma_encode(original);
-    if encoded.is_empty() { return; }
+    if encoded.is_empty() {
+        return;
+    }
 
     let mut corrupted = encoded;
     // Destroy the LZMA properties header (first 5 bytes)
@@ -874,7 +985,11 @@ fn stress_zombie_lzma_header_destroyed() {
 
     let decoder = ZombieLzmaDecoder::new();
     let (output, _taint, stats) = decoder.decode(&corrupted);
-    println!("  LZMA header destroyed: {} out, {} resyncs", output.len(), stats.resync_count);
+    println!(
+        "  LZMA header destroyed: {} out, {} resyncs",
+        output.len(),
+        stats.resync_count
+    );
     // Should not crash
 }
 
@@ -898,7 +1013,12 @@ fn stress_entropy_classification() {
     // English text
     let text = b"The quick brown fox jumps over the lazy dog multiple times to generate entropy.";
     let (h, c3) = classify_entropy(text);
-    assert_eq!(c3, EntropyClass::Valid, "English text entropy={} should be Valid", h);
+    assert_eq!(
+        c3,
+        EntropyClass::Valid,
+        "English text entropy={} should be Valid",
+        h
+    );
 
     // Binary executable-like (mixed but not uniform)
     let mut binary_like = Vec::new();
@@ -923,8 +1043,13 @@ fn stress_taintmap_large() {
         tm.set(i);
     }
     let expected = 1_000_000_usize.div_ceil(7);
-    assert_eq!(tm.taint_count(), expected,
-        "Expected {} tainted bytes, got {}", expected, tm.taint_count());
+    assert_eq!(
+        tm.taint_count(),
+        expected,
+        "Expected {} tainted bytes, got {}",
+        expected,
+        tm.taint_count()
+    );
 
     // Verify some spots
     assert!(tm.is_tainted(0));
@@ -945,10 +1070,7 @@ fn stress_taintmap_large() {
 
 fn lzma_encode(data: &[u8]) -> Vec<u8> {
     let mut output = Vec::new();
-    match lzma_rs::lzma_compress(
-        &mut std::io::BufReader::new(Cursor::new(data)),
-        &mut output,
-    ) {
+    match lzma_rs::lzma_compress(&mut std::io::BufReader::new(Cursor::new(data)), &mut output) {
         Ok(_) => output,
         Err(_) => Vec::new(),
     }

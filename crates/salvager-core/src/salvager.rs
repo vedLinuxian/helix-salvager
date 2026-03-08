@@ -139,44 +139,53 @@ impl CarvedFileType {
 /// Order matters: longer/more-specific patterns first.
 const SIGNATURES: &[(&[u8], CarvedFileType)] = &[
     // ── Images ──
-    (&[0xFF, 0xD8, 0xFF],                          CarvedFileType::Jpeg),
-    (&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], CarvedFileType::Png),
-    (&[0x47, 0x49, 0x46, 0x38],                    CarvedFileType::Gif),    // GIF87a / GIF89a
-    (&[0x42, 0x4D],                                  CarvedFileType::Bmp),    // BM — validated in post-AC
-    (&[0x49, 0x49, 0x2A, 0x00],                    CarvedFileType::Tiff),   // TIFF (Intel byte order)
-    (&[0x4D, 0x4D, 0x00, 0x2A],                    CarvedFileType::Tiff),   // TIFF (Motorola byte order)
-    (&[0x00, 0x00, 0x01, 0x00],                    CarvedFileType::Ico),    // ICO
-    (&[0x38, 0x42, 0x50, 0x53],                    CarvedFileType::Psd),    // 8BPS (Photoshop)
+    (&[0xFF, 0xD8, 0xFF], CarvedFileType::Jpeg),
+    (
+        &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+        CarvedFileType::Png,
+    ),
+    (&[0x47, 0x49, 0x46, 0x38], CarvedFileType::Gif), // GIF87a / GIF89a
+    (&[0x42, 0x4D], CarvedFileType::Bmp),             // BM — validated in post-AC
+    (&[0x49, 0x49, 0x2A, 0x00], CarvedFileType::Tiff), // TIFF (Intel byte order)
+    (&[0x4D, 0x4D, 0x00, 0x2A], CarvedFileType::Tiff), // TIFF (Motorola byte order)
+    (&[0x00, 0x00, 0x01, 0x00], CarvedFileType::Ico), // ICO
+    (&[0x38, 0x42, 0x50, 0x53], CarvedFileType::Psd), // 8BPS (Photoshop)
     // ── PDF ──
-    (&[0x25, 0x50, 0x44, 0x46],                    CarvedFileType::Pdf),    // %PDF
+    (&[0x25, 0x50, 0x44, 0x46], CarvedFileType::Pdf), // %PDF
     // ── Video ──
-    (&[0x66, 0x74, 0x79, 0x70],                    CarvedFileType::Mp4),    // ftyp (at offset+4)
+    (&[0x66, 0x74, 0x79, 0x70], CarvedFileType::Mp4), // ftyp (at offset+4)
     // ── RIFF container (WebP, WAV, AVI) ──
-    (&[0x57, 0x45, 0x42, 0x50],                    CarvedFileType::WebP),   // WEBP at RIFF+8
-    (&[0x57, 0x41, 0x56, 0x45],                    CarvedFileType::Wav),    // WAVE at RIFF+8
-    (&[0x41, 0x56, 0x49, 0x20],                    CarvedFileType::Avi),    // AVI  at RIFF+8
+    (&[0x57, 0x45, 0x42, 0x50], CarvedFileType::WebP), // WEBP at RIFF+8
+    (&[0x57, 0x41, 0x56, 0x45], CarvedFileType::Wav),  // WAVE at RIFF+8
+    (&[0x41, 0x56, 0x49, 0x20], CarvedFileType::Avi),  // AVI  at RIFF+8
     // ── Audio ──
-    (&[0xFF, 0xFB],                                CarvedFileType::Mp3),    // MP3 frame sync v1
-    (&[0xFF, 0xFA],                                CarvedFileType::Mp3),    // MP3 frame sync v1
-    (&[0x49, 0x44, 0x33],                          CarvedFileType::Mp3),    // ID3 tag
-    (&[0x66, 0x4C, 0x61, 0x43],                    CarvedFileType::Flac),   // fLaC
-    (&[0x4F, 0x67, 0x67, 0x53],                    CarvedFileType::Ogg),    // OggS
+    (&[0xFF, 0xFB], CarvedFileType::Mp3), // MP3 frame sync v1
+    (&[0xFF, 0xFA], CarvedFileType::Mp3), // MP3 frame sync v1
+    (&[0x49, 0x44, 0x33], CarvedFileType::Mp3), // ID3 tag
+    (&[0x66, 0x4C, 0x61, 0x43], CarvedFileType::Flac), // fLaC
+    (&[0x4F, 0x67, 0x67, 0x53], CarvedFileType::Ogg), // OggS
     // ── Archives ──
-    (&[0x50, 0x4B, 0x03, 0x04],                    CarvedFileType::Zip),    // PK..
-    (&[0x52, 0x61, 0x72, 0x21, 0x1A, 0x07],        CarvedFileType::Rar),
-    (&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C],        CarvedFileType::SevenZ),
-    (&[0x75, 0x73, 0x74, 0x61, 0x72],             CarvedFileType::Tar),    // ustar (at offset 257)
+    (&[0x50, 0x4B, 0x03, 0x04], CarvedFileType::Zip), // PK..
+    (&[0x52, 0x61, 0x72, 0x21, 0x1A, 0x07], CarvedFileType::Rar),
+    (
+        &[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C],
+        CarvedFileType::SevenZ,
+    ),
+    (&[0x75, 0x73, 0x74, 0x61, 0x72], CarvedFileType::Tar), // ustar (at offset 257)
     // ── Executables ──
-    (&[0x4D, 0x5A, 0x90, 0x00],                    CarvedFileType::Exe),    // MZ\x90\x00 (standard PE)
-    (&[0x7F, 0x45, 0x4C, 0x46],                    CarvedFileType::Elf),    // .ELF
+    (&[0x4D, 0x5A, 0x90, 0x00], CarvedFileType::Exe), // MZ\x90\x00 (standard PE)
+    (&[0x7F, 0x45, 0x4C, 0x46], CarvedFileType::Elf), // .ELF
     // ── WebAssembly ──
-    (&[0x00, 0x61, 0x73, 0x6D],                    CarvedFileType::Wasm),   // \0asm
+    (&[0x00, 0x61, 0x73, 0x6D], CarvedFileType::Wasm), // \0asm
     // ── Database ──
-    (&[0x53, 0x51, 0x4C, 0x69, 0x74, 0x65],        CarvedFileType::Sqlite), // SQLite
+    (
+        &[0x53, 0x51, 0x4C, 0x69, 0x74, 0x65],
+        CarvedFileType::Sqlite,
+    ), // SQLite
     // ── Text-based ──
-    (&[0x3C, 0x3F, 0x78, 0x6D, 0x6C],             CarvedFileType::Xml),    // <?xml
-    (&[0x3C, 0x21, 0x44, 0x4F, 0x43],             CarvedFileType::Html),   // <!DOC
-    (&[0x3C, 0x68, 0x74, 0x6D, 0x6C],             CarvedFileType::Html),   // <html
+    (&[0x3C, 0x3F, 0x78, 0x6D, 0x6C], CarvedFileType::Xml), // <?xml
+    (&[0x3C, 0x21, 0x44, 0x4F, 0x43], CarvedFileType::Html), // <!DOC
+    (&[0x3C, 0x68, 0x74, 0x6D, 0x6C], CarvedFileType::Html), // <html
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -283,12 +292,14 @@ impl SalvageEngine {
     pub fn load_plugins(&mut self, registry: &crate::plugin::PluginRegistry) {
         self.plugin_signatures = registry.signatures().to_vec();
         if !self.plugin_signatures.is_empty() {
-            let patterns: Vec<Vec<u8>> = self.plugin_signatures
+            let patterns: Vec<Vec<u8>> = self
+                .plugin_signatures
                 .iter()
                 .map(crate::plugin::PluginRegistry::magic_bytes)
                 .collect();
             // Filter out empty patterns
-            let patterns: Vec<&[u8]> = patterns.iter()
+            let patterns: Vec<&[u8]> = patterns
+                .iter()
                 .filter(|p| !p.is_empty())
                 .map(|p| p.as_slice())
                 .collect();
@@ -320,16 +331,14 @@ impl SalvageEngine {
     /// Recover everything possible from a potentially corrupt archive.
     /// Tries structured extraction first (ZIP), then falls back to
     /// raw decompression + carving.
-    pub fn salvage(
-        &self,
-        data: &[u8],
-        progress_cb: ProgressCb<'_>,
-    ) -> SalvageReport {
+    pub fn salvage(&self, data: &[u8], progress_cb: ProgressCb<'_>) -> SalvageReport {
         let start = std::time::Instant::now();
 
         macro_rules! progress {
             ($msg:expr, $pct:expr) => {
-                if let Some(cb) = progress_cb { cb($msg, $pct); }
+                if let Some(cb) = progress_cb {
+                    cb($msg, $pct);
+                }
             };
         }
 
@@ -424,7 +433,11 @@ impl SalvageEngine {
             if total_weight == 0.0 {
                 salvaged.iter().map(|f| f.confidence).sum::<f64>() / salvaged.len() as f64
             } else {
-                salvaged.iter().map(|f| f.confidence * f.size as f64).sum::<f64>() / total_weight
+                salvaged
+                    .iter()
+                    .map(|f| f.confidence * f.size as f64)
+                    .sum::<f64>()
+                    / total_weight
             }
         };
 
@@ -471,7 +484,9 @@ impl SalvageEngine {
             Ok(a) => a,
             Err(_) => {
                 // Central directory corrupt — fall back to raw carve
-                if let Some(cb) = progress_cb { cb("ZIP header corrupt — switching to raw carve", 30); }
+                if let Some(cb) = progress_cb {
+                    cb("ZIP header corrupt — switching to raw carve", 30);
+                }
                 method = "ZIP Header Corrupt → Raw Carve".to_string();
                 let carved = self.carve_raw(data, progress_cb);
                 return (carved, 0, method);
@@ -515,13 +530,19 @@ impl SalvageEngine {
                 Err(_) => {
                     crc_errors += 1;
                     // Still try to use whatever partial data we got.
-                    if buf.is_empty() { continue; }
+                    if buf.is_empty() {
+                        continue;
+                    }
                 }
             }
 
             let ft = self.identify_type(&buf);
             let ext = if let Some(e) = name.rsplit('.').next() {
-                if e.len() <= 6 { e.to_string() } else { ft.extension().to_string() }
+                if e.len() <= 6 {
+                    e.to_string()
+                } else {
+                    ft.extension().to_string()
+                }
             } else {
                 ft.extension().to_string()
             };
@@ -553,7 +574,9 @@ impl SalvageEngine {
 
         // If structured extraction got nothing, try raw carving the entire blob.
         if salvaged.is_empty() && data.len() > 100 {
-            if let Some(cb) = progress_cb { cb("No files extracted — falling back to raw carve", 75); }
+            if let Some(cb) = progress_cb {
+                cb("No files extracted — falling back to raw carve", 75);
+            }
             method = "ZIP Empty → Raw Carve".to_string();
             salvaged = self.carve_raw(data, progress_cb);
         }
@@ -616,7 +639,12 @@ impl SalvageEngine {
             if !xz_out.is_empty() {
                 let carved = self.carve_raw(&xz_out, progress_cb);
                 if !carved.is_empty() {
-                    return (carved, 0, "7z XZ Decode → Carve".to_string(), ZombieStats::default());
+                    return (
+                        carved,
+                        0,
+                        "7z XZ Decode → Carve".to_string(),
+                        ZombieStats::default(),
+                    );
                 }
             }
         }
@@ -626,7 +654,12 @@ impl SalvageEngine {
             cb("Zombie decode exhausted — raw carving archive bytes...", 60);
         }
         let carved = self.carve_raw(data, progress_cb);
-        (carved, lzma_errors, "7z Raw Carve (Zombie Exhausted)".to_string(), z_stats)
+        (
+            carved,
+            lzma_errors,
+            "7z Raw Carve (Zombie Exhausted)".to_string(),
+            z_stats,
+        )
     }
 
     // ──────────────────────────────────────────────────────────
@@ -662,7 +695,13 @@ impl SalvageEngine {
         }
 
         if let Some(cb) = progress_cb {
-            cb(&format!("GZIP decompressed {} bytes — carving...", decompressed.len()), 40);
+            cb(
+                &format!(
+                    "GZIP decompressed {} bytes — carving...",
+                    decompressed.len()
+                ),
+                40,
+            );
         }
 
         // Check if decompressed data is a tar archive
@@ -723,7 +762,13 @@ impl SalvageEngine {
         }
 
         if let Some(cb) = progress_cb {
-            cb(&format!("BZIP2 decompressed {} bytes — carving...", decompressed.len()), 40);
+            cb(
+                &format!(
+                    "BZIP2 decompressed {} bytes — carving...",
+                    decompressed.len()
+                ),
+                40,
+            );
         }
 
         // Check if decompressed data is a tar archive
@@ -755,11 +800,7 @@ impl SalvageEngine {
         (files, "BZIP2 Decompress → Carve".to_string())
     }
 
-    fn salvage_xz(
-        &self,
-        data: &[u8],
-        progress_cb: ProgressCb<'_>,
-    ) -> (Vec<SalvagedFile>, String) {
+    fn salvage_xz(&self, data: &[u8], progress_cb: ProgressCb<'_>) -> (Vec<SalvagedFile>, String) {
         if let Some(cb) = progress_cb {
             cb("Decompressing XZ stream...", 15);
         }
@@ -780,7 +821,10 @@ impl SalvageEngine {
         }
 
         if let Some(cb) = progress_cb {
-            cb(&format!("XZ decompressed {} bytes — carving...", decompressed.len()), 40);
+            cb(
+                &format!("XZ decompressed {} bytes — carving...", decompressed.len()),
+                40,
+            );
         }
 
         // Check if decompressed data is a tar archive
@@ -796,11 +840,7 @@ impl SalvageEngine {
     }
 
     /// Extract files from a TAR archive (used after gzip/bzip2/xz decompression).
-    fn salvage_tar(
-        &self,
-        data: &[u8],
-        progress_cb: ProgressCb<'_>,
-    ) -> Vec<SalvagedFile> {
+    fn salvage_tar(&self, data: &[u8], progress_cb: ProgressCb<'_>) -> Vec<SalvagedFile> {
         let mut salvaged = Vec::new();
         let mut archive = tar::Archive::new(Cursor::new(data));
 
@@ -836,7 +876,11 @@ impl SalvageEngine {
 
             let ft = self.identify_type(&buf);
             let ext = if let Some(e) = name.rsplit('.').next() {
-                if e.len() <= 6 { e.to_string() } else { ft.extension().to_string() }
+                if e.len() <= 6 {
+                    e.to_string()
+                } else {
+                    ft.extension().to_string()
+                }
             } else {
                 ft.extension().to_string()
             };
@@ -870,11 +914,7 @@ impl SalvageEngine {
     /// structural metadata (file names, sizes, offsets) and attempt
     /// to extract stored (uncompressed) files. For compressed entries,
     /// we fall back to raw carving the embedded data.
-    fn salvage_rar(
-        &self,
-        data: &[u8],
-        progress_cb: ProgressCb<'_>,
-    ) -> (Vec<SalvagedFile>, String) {
+    fn salvage_rar(&self, data: &[u8], progress_cb: ProgressCb<'_>) -> (Vec<SalvagedFile>, String) {
         let mut salvaged = Vec::new();
 
         // RAR v5 signature: Rar!\x1a\x07\x01\x00
@@ -883,8 +923,13 @@ impl SalvageEngine {
         let header_end = if is_v5 { 8 } else { 7 };
 
         if let Some(cb) = progress_cb {
-            cb(&format!("RAR {} detected — scanning blocks...",
-                if is_v5 { "v5" } else { "v4" }), 15);
+            cb(
+                &format!(
+                    "RAR {} detected — scanning blocks...",
+                    if is_v5 { "v5" } else { "v4" }
+                ),
+                15,
+            );
         }
 
         if is_v5 {
@@ -893,7 +938,9 @@ impl SalvageEngine {
             while pos + 7 < data.len() {
                 // v5 uses vint encoding for sizes
                 let (header_crc, _) = read_u32_le(data, pos);
-                if header_crc == 0 && pos > header_end + 100 { break; }
+                if header_crc == 0 && pos > header_end + 100 {
+                    break;
+                }
 
                 let (header_size, vint_len) = read_vint(data, pos + 4);
                 if header_size == 0 || pos + 4 + vint_len + header_size as usize > data.len() {
@@ -908,7 +955,9 @@ impl SalvageEngine {
                     let header_flags_raw = if block_data.len() > 1 {
                         let (v, _) = read_vint(block_data, 1);
                         v
-                    } else { 0 };
+                    } else {
+                        0
+                    };
                     let has_data = header_flags_raw & 0x02 != 0;
 
                     // Type 2 = File header
@@ -920,8 +969,7 @@ impl SalvageEngine {
                         // Data follows the header block
                         let data_start = block_start + header_size as usize;
                         // Try to read data size from header
-                        let data_size = extract_rar5_data_size(block_data)
-                            .unwrap_or(0) as usize;
+                        let data_size = extract_rar5_data_size(block_data).unwrap_or(0) as usize;
                         let actual_end = if data_size > 0 && data_start + data_size <= data.len() {
                             data_start + data_size
                         } else {
@@ -932,7 +980,9 @@ impl SalvageEngine {
                         if actual_end > data_start + 32 {
                             let file_data = &data[data_start..actual_end];
                             let ft = self.identify_type(file_data);
-                            let ext = name.rsplit('.').next()
+                            let ext = name
+                                .rsplit('.')
+                                .next()
                                 .filter(|e| e.len() <= 6)
                                 .unwrap_or(ft.extension());
 
@@ -973,8 +1023,10 @@ impl SalvageEngine {
                 let has_add_size = flags & 0x8000 != 0;
                 let add_size = if has_add_size && pos + 11 < data.len() {
                     u32::from_le_bytes([
-                        data[pos + 7], data[pos + 8],
-                        data[pos + 9], data[pos + 10],
+                        data[pos + 7],
+                        data[pos + 8],
+                        data[pos + 9],
+                        data[pos + 10],
                     ]) as usize
                 } else {
                     0
@@ -992,7 +1044,9 @@ impl SalvageEngine {
                     if data_end > data_start + 32 {
                         let file_data = &data[data_start..data_end];
                         let ft = self.identify_type(file_data);
-                        let ext = name.rsplit('.').next()
+                        let ext = name
+                            .rsplit('.')
+                            .next()
                             .filter(|e| e.len() <= 6)
                             .unwrap_or(ft.extension());
 
@@ -1023,7 +1077,10 @@ impl SalvageEngine {
         // If structured parsing found nothing, fall back to raw carving
         if salvaged.is_empty() {
             if let Some(cb) = progress_cb {
-                cb("RAR structure too damaged — falling back to raw carving...", 50);
+                cb(
+                    "RAR structure too damaged — falling back to raw carving...",
+                    50,
+                );
             }
             salvaged = self.carve_raw(data, progress_cb);
             return (salvaged, "RAR → Raw Carve (fallback)".to_string());
@@ -1041,8 +1098,7 @@ impl SalvageEngine {
             }
         }
 
-        let method = format!("RAR {} Parse + Raw Carve",
-            if is_v5 { "v5" } else { "v4" });
+        let method = format!("RAR {} Parse + Raw Carve", if is_v5 { "v5" } else { "v4" });
         (salvaged, method)
     }
 
@@ -1050,16 +1106,14 @@ impl SalvageEngine {
     //  COMPONENT B: Magic Header Carver (Aho-Corasick)
     // ──────────────────────────────────────────────────────────
 
-    fn carve_raw(
-        &self,
-        data: &[u8],
-        progress_cb: ProgressCb<'_>,
-    ) -> Vec<SalvagedFile> {
+    fn carve_raw(&self, data: &[u8], progress_cb: ProgressCb<'_>) -> Vec<SalvagedFile> {
         if data.is_empty() {
             return Vec::new();
         }
 
-        if let Some(cb) = progress_cb { cb("Scanning for magic headers (Aho-Corasick)...", 65); }
+        if let Some(cb) = progress_cb {
+            cb("Scanning for magic headers (Aho-Corasick)...", 65);
+        }
 
         // Find all magic signature matches.
         let mut hits: Vec<(usize, CarvedFileType)> = Vec::new();
@@ -1082,7 +1136,10 @@ impl SalvageEngine {
             };
 
             // Deduplicate: don't add if we already have a hit within 4 bytes of this offset.
-            if hits.last().map_or(true, |(prev_off, _)| actual_offset > *prev_off + 4) {
+            if hits
+                .last()
+                .is_none_or(|(prev_off, _)| actual_offset > *prev_off + 4)
+            {
                 hits.push((actual_offset, file_type));
             }
         }
@@ -1145,7 +1202,10 @@ impl SalvageEngine {
         });
 
         if let Some(cb) = progress_cb {
-            cb(&format!("Found {} file signatures — extracting...", hits.len()), 70);
+            cb(
+                &format!("Found {} file signatures — extracting...", hits.len()),
+                70,
+            );
         }
 
         let mut salvaged = Vec::new();
@@ -1170,7 +1230,10 @@ impl SalvageEngine {
 
             if let Some(cb) = progress_cb {
                 let pct = 70 + (i as u32 * 15 / hits.len().max(1) as u32);
-                cb(&format!("Carving file {} ({})", i + 1, file_type.label()), pct);
+                cb(
+                    &format!("Carving file {} ({})", i + 1, file_type.label()),
+                    pct,
+                );
             }
 
             // Confidence for raw carving: base 0.55 + bonus for end-marker trimming
@@ -1222,7 +1285,11 @@ impl SalvageEngine {
 
             let ext = &sig.extension;
             let name_str = &sig.name;
-            let confidence = if trimmed.len() < file_data.len() { 0.65 } else { 0.50 };
+            let confidence = if trimmed.len() < file_data.len() {
+                0.65
+            } else {
+                0.50
+            };
 
             salvaged.push(SalvagedFile {
                 index: salvaged.len(),
@@ -1298,10 +1365,8 @@ impl SalvageEngine {
                 if let Some(pos) = rfind_bytes(data, &[0x50, 0x4B, 0x05, 0x06]) {
                     // EOCD is 22 bytes minimum, but may have a comment
                     if pos + 22 <= data.len() {
-                        let comment_len = u16::from_le_bytes([
-                            data[pos + 20],
-                            data[pos + 21],
-                        ]) as usize;
+                        let comment_len =
+                            u16::from_le_bytes([data[pos + 20], data[pos + 21]]) as usize;
                         let end = (pos + 22 + comment_len).min(data.len());
                         return &data[..end];
                     }
@@ -1317,22 +1382,33 @@ impl SalvageEngine {
     // ──────────────────────────────────────────────────────────
 
     fn detect_archive_type(&self, data: &[u8]) -> String {
-        if data.len() < 6 { return "unknown".into(); }
-        if data.starts_with(&[0x50, 0x4B, 0x03, 0x04]) { return "zip".into(); }
-        if data.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) { return "7z".into(); }
-        if data.starts_with(&[0x52, 0x61, 0x72, 0x21]) { return "rar".into(); }
-        if data.starts_with(&[0x1F, 0x8B]) { return "gzip".into(); }
-        if data.starts_with(&[0x42, 0x5A, 0x68]) { return "bzip2".into(); }
-        if data.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A]) { return "xz".into(); }
+        if data.len() < 6 {
+            return "unknown".into();
+        }
+        if data.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
+            return "zip".into();
+        }
+        if data.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) {
+            return "7z".into();
+        }
+        if data.starts_with(&[0x52, 0x61, 0x72, 0x21]) {
+            return "rar".into();
+        }
+        if data.starts_with(&[0x1F, 0x8B]) {
+            return "gzip".into();
+        }
+        if data.starts_with(&[0x42, 0x5A, 0x68]) {
+            return "bzip2".into();
+        }
+        if data.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A]) {
+            return "xz".into();
+        }
         "unknown".into()
     }
 
     fn identify_type(&self, data: &[u8]) -> CarvedFileType {
         // BMP: look for "BM" + valid 4-byte little-endian file size
-        if data.len() >= 14
-            && data[0] == 0x42
-            && data[1] == 0x4D
-        {
+        if data.len() >= 14 && data[0] == 0x42 && data[1] == 0x4D {
             let declared_size = u32::from_le_bytes([data[2], data[3], data[4], data[5]]);
             if declared_size >= 14 && (declared_size as usize) <= data.len() + 1024 {
                 return CarvedFileType::Bmp;
@@ -1340,9 +1416,15 @@ impl SalvageEngine {
         }
         // RIFF: check sub-type at offset 8 to distinguish WebP / WAV / AVI
         if data.len() >= 12 && data[..4] == [0x52, 0x49, 0x46, 0x46] {
-            if &data[8..12] == b"WEBP" { return CarvedFileType::WebP; }
-            if &data[8..12] == b"WAVE" { return CarvedFileType::Wav; }
-            if &data[8..12] == b"AVI " { return CarvedFileType::Avi; }
+            if &data[8..12] == b"WEBP" {
+                return CarvedFileType::WebP;
+            }
+            if &data[8..12] == b"WAVE" {
+                return CarvedFileType::Wav;
+            }
+            if &data[8..12] == b"AVI " {
+                return CarvedFileType::Avi;
+            }
         }
         // PE/EXE: require "MZ" + valid PE offset
         if data.len() >= 64 && data[0] == 0x4D && data[1] == 0x5A {
@@ -1356,7 +1438,14 @@ impl SalvageEngine {
         }
         for &(sig, ft) in SIGNATURES {
             // Skip types handled above with deeper validation
-            if matches!(ft, CarvedFileType::Bmp | CarvedFileType::WebP | CarvedFileType::Wav | CarvedFileType::Avi | CarvedFileType::Exe) {
+            if matches!(
+                ft,
+                CarvedFileType::Bmp
+                    | CarvedFileType::WebP
+                    | CarvedFileType::Wav
+                    | CarvedFileType::Avi
+                    | CarvedFileType::Exe
+            ) {
                 continue;
             }
             if data.len() >= sig.len() && data[..sig.len()] == *sig {
@@ -1367,14 +1456,20 @@ impl SalvageEngine {
     }
 
     fn build_type_breakdown(&self, files: &[SalvagedFile]) -> Vec<TypeCount> {
-        let mut map: std::collections::HashMap<String, (usize, usize)> = std::collections::HashMap::new();
+        let mut map: std::collections::HashMap<String, (usize, usize)> =
+            std::collections::HashMap::new();
         for f in files {
             let entry = map.entry(f.file_type.clone()).or_insert((0, 0));
             entry.0 += 1;
             entry.1 += f.size;
         }
-        let mut breakdown: Vec<TypeCount> = map.into_iter()
-            .map(|(file_type, (count, total_bytes))| TypeCount { file_type, count, total_bytes })
+        let mut breakdown: Vec<TypeCount> = map
+            .into_iter()
+            .map(|(file_type, (count, total_bytes))| TypeCount {
+                file_type,
+                count,
+                total_bytes,
+            })
             .collect();
         breakdown.sort_by(|a, b| b.count.cmp(&a.count));
         breakdown
@@ -1394,7 +1489,10 @@ impl SalvageEngine {
 
         for f in files {
             // Use original name if available, otherwise generate one
-            let name = if f.name.is_empty() || f.name.starts_with("carved_") || f.name.starts_with("decompressed") {
+            let name = if f.name.is_empty()
+                || f.name.starts_with("carved_")
+                || f.name.starts_with("decompressed")
+            {
                 format!("salvaged_{:04}.{}", f.index, f.extension)
             } else {
                 // Sanitize: strip directory components for safety
@@ -1442,8 +1540,10 @@ fn rfind_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 fn read_u32_le(data: &[u8], offset: usize) -> (u32, usize) {
     if offset + 4 <= data.len() {
         let val = u32::from_le_bytes([
-            data[offset], data[offset + 1],
-            data[offset + 2], data[offset + 3],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
         ]);
         (val, 4)
     } else {
@@ -1476,7 +1576,9 @@ fn extract_rar5_filename(block: &[u8]) -> Option<String> {
     // v5 file header: type(vint) + flags(vint) + extra_size(vint)? +
     //   data_size(vint)? + ... + name_size(vint) + name(bytes)
     // This is a simplified parser that looks for printable UTF-8 sequences
-    if block.len() < 10 { return None; }
+    if block.len() < 10 {
+        return None;
+    }
 
     let mut pos = 0;
     // Skip header_type vint
@@ -1529,7 +1631,9 @@ fn extract_rar5_filename(block: &[u8]) -> Option<String> {
 
 /// Try to extract the data size from a RAR v5 file header block.
 fn extract_rar5_data_size(block: &[u8]) -> Option<u64> {
-    if block.len() < 6 { return None; }
+    if block.len() < 6 {
+        return None;
+    }
     let mut pos = 0;
     // Skip header_type
     let (_, vlen) = read_vint(block, pos);
@@ -1571,10 +1675,7 @@ fn extract_rar4_filename(data: &[u8], block_start: usize, block_size: usize) -> 
     if block_start + 32 > data.len() || block_size < 32 {
         return None;
     }
-    let name_size = u16::from_le_bytes([
-        data[block_start + 26],
-        data[block_start + 27],
-    ]) as usize;
+    let name_size = u16::from_le_bytes([data[block_start + 26], data[block_start + 27]]) as usize;
     if name_size == 0 || name_size > 1024 {
         return None;
     }
@@ -1607,8 +1708,14 @@ mod tests {
     #[test]
     fn test_detect_archive_type() {
         let engine = SalvageEngine::new();
-        assert_eq!(engine.detect_archive_type(&[0x50, 0x4B, 0x03, 0x04, 0x00, 0x00]), "zip");
-        assert_eq!(engine.detect_archive_type(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]), "7z");
+        assert_eq!(
+            engine.detect_archive_type(&[0x50, 0x4B, 0x03, 0x04, 0x00, 0x00]),
+            "zip"
+        );
+        assert_eq!(
+            engine.detect_archive_type(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]),
+            "7z"
+        );
         assert_eq!(engine.detect_archive_type(&[0x00, 0x00]), "unknown");
     }
 
@@ -1630,24 +1737,28 @@ mod tests {
 
         // "JPEG" file — 200 bytes
         stream.extend_from_slice(&[0xFF, 0xD8, 0xFF, 0xE0]);
-        stream.extend(std::iter::repeat(0x42u8).take(194));
+        stream.extend(std::iter::repeat_n(0x42u8, 194));
         stream.extend_from_slice(&[0xFF, 0xD9]); // JPEG end marker
 
         // "PNG" file — 150 bytes
         stream.extend_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-        stream.extend(std::iter::repeat(0x55u8).take(130));
+        stream.extend(std::iter::repeat_n(0x55u8, 130));
         stream.extend_from_slice(b"IEND");
         stream.extend_from_slice(&[0xAE, 0x42, 0x60, 0x82]); // CRC
 
         // "PDF" file — 100 bytes
         stream.extend_from_slice(b"%PDF-1.4 fake content");
-        stream.extend(std::iter::repeat(0x20u8).take(70));
+        stream.extend(std::iter::repeat_n(0x20u8, 70));
         stream.extend_from_slice(b"%%EOF\n");
 
         let engine = SalvageEngine::new();
         let carved = engine.carve_raw(&stream, None);
 
-        assert_eq!(carved.len(), 3, "Should carve 3 files from synthetic stream");
+        assert_eq!(
+            carved.len(),
+            3,
+            "Should carve 3 files from synthetic stream"
+        );
         assert_eq!(carved[0].file_type, "JPEG Image");
         assert_eq!(carved[1].file_type, "PNG Image");
         assert_eq!(carved[2].file_type, "PDF Document");
@@ -1668,14 +1779,19 @@ mod tests {
         writer.start_file("hello.txt", opts).unwrap();
         writer.write_all(b"Hello from Helix-Salvager!").unwrap();
         writer.start_file("world.txt", opts).unwrap();
-        writer.write_all(b"Second file test data for salvage engine.").unwrap();
+        writer
+            .write_all(b"Second file test data for salvage engine.")
+            .unwrap();
         let data = writer.finish().unwrap().into_inner();
 
         let engine = SalvageEngine::new();
         let report = engine.salvage(&data, None);
 
         assert_eq!(report.archive_type, "zip");
-        assert!(report.files_salvaged >= 2, "Should salvage at least 2 files from valid ZIP");
+        assert!(
+            report.files_salvaged >= 2,
+            "Should salvage at least 2 files from valid ZIP"
+        );
         assert_eq!(report.crc_errors_ignored, 0);
     }
 
@@ -1799,7 +1915,7 @@ mod tests {
     fn test_rar_empty_fallback() {
         // RAR header with no valid blocks should fall back to raw carving
         let mut data = vec![0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00]; // RAR v4 header
-        data.extend(std::iter::repeat(0x00u8).take(100)); // garbage
+        data.extend(std::iter::repeat_n(0x00u8, 100)); // garbage
         let engine = SalvageEngine::new();
         let report = engine.salvage(&data, None);
         assert_eq!(report.archive_type, "rar");
@@ -1810,31 +1926,36 @@ mod tests {
     fn test_rar_with_embedded_jpeg() {
         // RAR header + embedded JPEG data (not in a proper block)
         let mut data = vec![0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00];
-        data.extend(std::iter::repeat(0x00u8).take(50));
+        data.extend(std::iter::repeat_n(0x00u8, 50));
         // Embed a JPEG
         data.extend_from_slice(&[0xFF, 0xD8, 0xFF, 0xE0]);
-        data.extend(std::iter::repeat(0xABu8).take(196));
+        data.extend(std::iter::repeat_n(0xABu8, 196));
         data.extend_from_slice(&[0xFF, 0xD9]);
         let engine = SalvageEngine::new();
         let report = engine.salvage(&data, None);
         assert_eq!(report.archive_type, "rar");
         // Should find the JPEG via raw carve fallback
-        assert!(report.files_salvaged >= 1, "Should find embedded JPEG in RAR");
+        assert!(
+            report.files_salvaged >= 1,
+            "Should find embedded JPEG in RAR"
+        );
     }
 
     #[test]
     fn test_plugin_engine_integration() {
         let mut registry = crate::plugin::PluginRegistry::new();
-        registry.add_signature(crate::plugin::CustomSignature {
-            name: "Test Format".into(),
-            extension: "tst".into(),
-            magic: "CAFE".into(),
-            offset: 0,
-            max_size: 1024,
-            end_marker: Some("FEED".into()),
-            mime_type: None,
-            description: None,
-        }).unwrap();
+        registry
+            .add_signature(crate::plugin::CustomSignature {
+                name: "Test Format".into(),
+                extension: "tst".into(),
+                magic: "CAFE".into(),
+                offset: 0,
+                max_size: 1024,
+                end_marker: Some("FEED".into()),
+                mime_type: None,
+                description: None,
+            })
+            .unwrap();
 
         let engine = SalvageEngine::with_plugins(&registry);
         assert_eq!(engine.plugin_signature_count(), 1);
@@ -1845,28 +1966,32 @@ mod tests {
     #[test]
     fn test_plugin_carving() {
         let mut registry = crate::plugin::PluginRegistry::new();
-        registry.add_signature(crate::plugin::CustomSignature {
-            name: "Custom".into(),
-            extension: "cst".into(),
-            magic: "DEADBEEF".into(),
-            offset: 0,
-            max_size: 1024,
-            end_marker: Some("CAFEBABE".into()),
-            mime_type: None,
-            description: None,
-        }).unwrap();
+        registry
+            .add_signature(crate::plugin::CustomSignature {
+                name: "Custom".into(),
+                extension: "cst".into(),
+                magic: "DEADBEEF".into(),
+                offset: 0,
+                max_size: 1024,
+                end_marker: Some("CAFEBABE".into()),
+                mime_type: None,
+                description: None,
+            })
+            .unwrap();
 
         // Build data with the custom signature
         let mut data = vec![0x00; 50]; // noise
         data.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]); // magic
-        data.extend(std::iter::repeat(0x41u8).take(100)); // payload
+        data.extend(std::iter::repeat_n(0x41u8, 100)); // payload
         data.extend_from_slice(&[0xCA, 0xFE, 0xBA, 0xBE]); // end marker
-        data.extend(std::iter::repeat(0x00u8).take(50)); // trailing noise
+        data.extend(std::iter::repeat_n(0x00u8, 50)); // trailing noise
 
         let engine = SalvageEngine::with_plugins(&registry);
         let report = engine.salvage(&data, None);
         // Should find the custom format
-        let custom_files: Vec<_> = report.files.iter()
+        let custom_files: Vec<_> = report
+            .files
+            .iter()
             .filter(|f| f.file_type == "Custom")
             .collect();
         assert!(!custom_files.is_empty(), "Should carve custom plugin file");
@@ -1886,10 +2011,16 @@ mod tests {
         let engine = SalvageEngine::new();
         let report = engine.salvage(&data, None);
 
-        assert!(report.overall_confidence > 0.0, "Should have positive overall confidence");
+        assert!(
+            report.overall_confidence > 0.0,
+            "Should have positive overall confidence"
+        );
         for f in &report.files {
-            assert!(f.confidence > 0.0 && f.confidence <= 1.0,
-                "File confidence should be 0..1, got {}", f.confidence);
+            assert!(
+                f.confidence > 0.0 && f.confidence <= 1.0,
+                "File confidence should be 0..1, got {}",
+                f.confidence
+            );
         }
     }
 
@@ -1902,7 +2033,9 @@ mod tests {
             .compression_method(zip::CompressionMethod::Stored);
         for i in 0..10 {
             writer.start_file(format!("file_{}.txt", i), opts).unwrap();
-            writer.write_all(format!("Content of file {}", i).as_bytes()).unwrap();
+            writer
+                .write_all(format!("Content of file {}", i).as_bytes())
+                .unwrap();
         }
         let data = writer.finish().unwrap().into_inner();
 
@@ -1920,7 +2053,7 @@ mod tests {
     fn test_deep_validation_in_pipeline() {
         // Create a stream with a valid JPEG
         let mut jpeg = vec![0xFF, 0xD8, 0xFF, 0xE0]; // SOI + APP0
-        jpeg.extend(std::iter::repeat(0xABu8).take(96));
+        jpeg.extend(std::iter::repeat_n(0xABu8, 96));
         jpeg.extend_from_slice(&[0xFF, 0xD9]); // EOI
 
         // Wrap it as unknown input so it goes through raw carving + validation
@@ -1930,7 +2063,10 @@ mod tests {
         // The JPEG should be found and validated
         if report.files_salvaged > 0 {
             let jpg = &report.files[0];
-            assert!(jpg.confidence > 0.0, "JPEG should have positive confidence after validation");
+            assert!(
+                jpg.confidence > 0.0,
+                "JPEG should have positive confidence after validation"
+            );
         }
     }
 }

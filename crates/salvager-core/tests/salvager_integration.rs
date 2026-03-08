@@ -57,11 +57,21 @@ fn run_salvage(data: &[u8], label: &str) -> salvager_core::SalvageReport {
     println!("  Salvage rate  : {}%", report.salvage_rate_percent);
     println!("  Time          : {}s", report.salvage_time_secs);
     for tc in &report.type_breakdown {
-        println!("    {} : {} files, {} bytes", tc.file_type, tc.count, tc.total_bytes);
+        println!(
+            "    {} : {} files, {} bytes",
+            tc.file_type, tc.count, tc.total_bytes
+        );
     }
     for f in &report.files {
-        println!("    [{}] {} .{} — {} bytes @ offset 0x{:X} — sha256:{}…",
-            f.index, f.file_type, f.extension, f.size, f.offset, &f.sha256[..16.min(f.sha256.len())]);
+        println!(
+            "    [{}] {} .{} — {} bytes @ offset 0x{:X} — sha256:{}…",
+            f.index,
+            f.file_type,
+            f.extension,
+            f.size,
+            f.offset,
+            &f.sha256[..16.min(f.sha256.len())]
+        );
     }
     report
 }
@@ -75,7 +85,10 @@ fn test_salvage_valid_zip() {
     let data = require_file!("test_photos.zip");
     let r = run_salvage(&data, "test_photos.zip");
     assert_eq!(r.archive_type, "zip");
-    assert_eq!(r.files_salvaged, 10, "Should extract all 10 files from clean ZIP");
+    assert_eq!(
+        r.files_salvaged, 10,
+        "Should extract all 10 files from clean ZIP"
+    );
     assert_eq!(r.crc_errors_ignored, 0);
 }
 
@@ -84,7 +97,11 @@ fn test_salvage_corrupt_light_zip() {
     let data = require_file!("test_corrupt_light.zip");
     let r = run_salvage(&data, "test_corrupt_light.zip");
     assert_eq!(r.archive_type, "zip");
-    assert!(r.files_salvaged >= 5, "Light ZIP corruption: expected ≥5 files, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 5,
+        "Light ZIP corruption: expected ≥5 files, got {}",
+        r.files_salvaged
+    );
 }
 
 #[test]
@@ -92,7 +109,11 @@ fn test_salvage_corrupt_medium_zip() {
     let data = require_file!("test_corrupt_medium.zip");
     let r = run_salvage(&data, "test_corrupt_medium.zip");
     assert_eq!(r.archive_type, "zip");
-    assert!(r.files_salvaged >= 3, "Medium ZIP corruption: expected ≥3 files, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 3,
+        "Medium ZIP corruption: expected ≥3 files, got {}",
+        r.files_salvaged
+    );
 }
 
 #[test]
@@ -100,21 +121,31 @@ fn test_salvage_corrupt_heavy_zip() {
     let data = require_file!("test_corrupt_heavy.zip");
     let r = run_salvage(&data, "test_corrupt_heavy.zip");
     assert_eq!(r.archive_type, "zip");
-    assert!(r.files_salvaged >= 1, "Heavy ZIP corruption: expected ≥1 file, got {}", r.files_salvaged);
+    assert!(
+        r.files_salvaged >= 1,
+        "Heavy ZIP corruption: expected ≥1 file, got {}",
+        r.files_salvaged
+    );
 }
 
 #[test]
 fn test_salvage_corrupt_header_zip() {
     let data = require_file!("test_corrupt_header.zip");
     let r = run_salvage(&data, "test_corrupt_header.zip");
-    println!("  Header-destroyed ZIP: {} files via {}", r.files_salvaged, r.method);
+    println!(
+        "  Header-destroyed ZIP: {} files via {}",
+        r.files_salvaged, r.method
+    );
 }
 
 #[test]
 fn test_salvage_corrupt_catastrophic_zip() {
     let data = require_file!("test_corrupt_catastrophic.zip");
     let r = run_salvage(&data, "test_corrupt_catastrophic.zip");
-    println!("  Catastrophic ZIP: {} files via {}", r.files_salvaged, r.method);
+    println!(
+        "  Catastrophic ZIP: {} files via {}",
+        r.files_salvaged, r.method
+    );
 }
 
 // ══════════════════════════════════════════════
@@ -149,14 +180,20 @@ fn test_salvage_corrupt_heavy_7z() {
 fn test_salvage_corrupt_header_7z() {
     let data = require_file!("test_corrupt_header.7z");
     let r = run_salvage(&data, "test_corrupt_header.7z");
-    println!("  Header-destroyed 7z: type={}, {} files via {}", r.archive_type, r.files_salvaged, r.method);
+    println!(
+        "  Header-destroyed 7z: type={}, {} files via {}",
+        r.archive_type, r.files_salvaged, r.method
+    );
 }
 
 #[test]
 fn test_salvage_corrupt_catastrophic_7z() {
     let data = require_file!("test_corrupt_catastrophic.7z");
     let r = run_salvage(&data, "test_corrupt_catastrophic.7z");
-    println!("  Catastrophic 7z: {} files via {}", r.files_salvaged, r.method);
+    println!(
+        "  Catastrophic 7z: {} files via {}",
+        r.files_salvaged, r.method
+    );
 }
 
 // ══════════════════════════════════════════════
@@ -171,8 +208,15 @@ fn test_pack_salvaged_output() {
 
     if report.files_salvaged > 0 {
         let zip_bytes = engine.pack_salvaged_zip(&report.files);
-        assert!(!zip_bytes.is_empty(), "Packed recovery ZIP should not be empty");
-        println!("  Packed {} salvaged files into {} byte ZIP", report.files_salvaged, zip_bytes.len());
+        assert!(
+            !zip_bytes.is_empty(),
+            "Packed recovery ZIP should not be empty"
+        );
+        println!(
+            "  Packed {} salvaged files into {} byte ZIP",
+            report.files_salvaged,
+            zip_bytes.len()
+        );
 
         // Verify the output ZIP is valid
         let reader = std::io::Cursor::new(&zip_bytes);

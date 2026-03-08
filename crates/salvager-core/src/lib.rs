@@ -46,14 +46,17 @@ pub mod validate;
 pub mod zombie_lzma;
 
 // Re-export the most commonly used types at crate root for ergonomic access.
+pub use disk::{
+    collect_all_files, scan_disk_image, DiskImageError, DiskImageReport, Partition, PartitionScheme,
+};
+pub use plugin::{CustomSignature, PluginConfig, PluginError, PluginRegistry};
 pub use salvager::{
     CarvedFileType, ProgressCb, SalvageEngine, SalvageReport, SalvagedFile, TypeCount,
 };
-pub use zombie_lzma::{
-    EntropyClass, TaintMap, ZombieLzmaDecoder, ZombieStats,
-    classify_entropy, shannon_entropy,
+pub use stream::{stream_salvage, StreamConfig, StreamError, StreamReport};
+pub use validate::{
+    validate_and_adjust, validate_file, IssueSeverity, ValidationIssue, ValidationResult,
 };
-pub use plugin::{CustomSignature, PluginConfig, PluginError, PluginRegistry};
-pub use disk::{DiskImageError, DiskImageReport, Partition, PartitionScheme, scan_disk_image, collect_all_files};
-pub use stream::{StreamConfig, StreamError, StreamReport, stream_salvage};
-pub use validate::{ValidationResult, ValidationIssue, IssueSeverity, validate_file, validate_and_adjust};
+pub use zombie_lzma::{
+    classify_entropy, shannon_entropy, EntropyClass, TaintMap, ZombieLzmaDecoder, ZombieStats,
+};

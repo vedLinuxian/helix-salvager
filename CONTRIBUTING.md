@@ -47,6 +47,7 @@ cargo test
 ## Code Guidelines
 
 ### Rust Style
+- **MSRV: 1.88** — do not use features requiring a newer compiler
 - Follow `rustfmt` defaults (run `cargo fmt`)
 - Zero clippy warnings — `cargo clippy -- -D warnings`
 - All public APIs must have doc comments

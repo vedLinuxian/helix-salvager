@@ -533,7 +533,7 @@ async fn api_salvage(
         _ => {
             log::warn!("Salvage request with no file data");
             return HttpResponse::BadRequest()
-                .json(serde_json::json!({"error": "No file uploaded."}))
+                .json(serde_json::json!({"error": "No file uploaded."}));
         }
     };
 
@@ -719,8 +719,7 @@ async fn api_download(
             Err(_) => HttpResponse::NotFound()
                 .json(serde_json::json!({"error": "Download file not found"})),
         },
-        _ => HttpResponse::NotFound()
-            .json(serde_json::json!({"error": "Download not available"})),
+        _ => HttpResponse::NotFound().json(serde_json::json!({"error": "Download not available"})),
     }
 }
 
@@ -762,15 +761,27 @@ fn print_banner(bind: &str, port: u16, args: &ServerArgs, workers: usize) {
         eprintln!("    SALVAGER v2.0 | Corrupt Archive Recovery Server");
         eprintln!();
         eprintln!("    Server : http://{}:{}", bind, port);
-        eprintln!("    Workers: {}  |  Upload: {} MB  |  Verbose: {}", workers, args.max_upload_mb, args.verbose);
-        eprintln!("    Tasks  : {} max  |  Retention: {} min", args.max_tasks, args.task_retention);
+        eprintln!(
+            "    Workers: {}  |  Upload: {} MB  |  Verbose: {}",
+            workers, args.max_upload_mb, args.verbose
+        );
+        eprintln!(
+            "    Tasks  : {} max  |  Retention: {} min",
+            args.max_tasks, args.task_retention
+        );
         eprintln!();
     } else {
         eprintln!();
         eprintln!("    {}", "██╗  ██╗███████╗██╗     ██╗██╗  ██╗".red().bold());
         eprintln!("    {}", "██║  ██║██╔════╝██║     ██║╚██╗██╔╝".red().bold());
-        eprintln!("    {}", "███████║█████╗  ██║     ██║ ╚███╔╝ ".yellow().bold());
-        eprintln!("    {}", "██╔══██║██╔══╝  ██║     ██║ ██╔██╗ ".yellow().bold());
+        eprintln!(
+            "    {}",
+            "███████║█████╗  ██║     ██║ ╚███╔╝ ".yellow().bold()
+        );
+        eprintln!(
+            "    {}",
+            "██╔══██║██╔══╝  ██║     ██║ ██╔██╗ ".yellow().bold()
+        );
         eprintln!("    {}", "██║  ██║███████╗███████╗██║██╔╝ ██╗".red());
         eprintln!("    {}", "╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝".red());
         eprintln!(
@@ -799,7 +810,11 @@ fn print_banner(bind: &str, port: u16, args: &ServerArgs, workers: usize) {
             "Verbose".dimmed(),
             format!("level {}", args.verbose).white(),
             "Tasks ".dimmed(),
-            format!("{} max / {} min retention", args.max_tasks, args.task_retention).white()
+            format!(
+                "{} max / {} min retention",
+                args.max_tasks, args.task_retention
+            )
+            .white()
         );
         eprintln!();
         eprintln!("    {}", "Engines".cyan().bold());
@@ -897,7 +912,11 @@ async fn main() -> std::io::Result<()> {
         .filter(|p| p.is_dir())
         .or_else(|| {
             let cwd = PathBuf::from("static");
-            if cwd.is_dir() { Some(cwd) } else { None }
+            if cwd.is_dir() {
+                Some(cwd)
+            } else {
+                None
+            }
         })
         .or_else(|| {
             std::env::current_exe()
@@ -907,7 +926,11 @@ async fn main() -> std::io::Result<()> {
         })
         .or_else(|| {
             let crate_static = PathBuf::from("crates/salvager-server/static");
-            if crate_static.is_dir() { Some(crate_static) } else { None }
+            if crate_static.is_dir() {
+                Some(crate_static)
+            } else {
+                None
+            }
         })
         .unwrap_or_else(|| PathBuf::from("static"));
 

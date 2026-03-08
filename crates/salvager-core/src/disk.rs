@@ -119,7 +119,10 @@ pub fn scan_disk_image<P: AsRef<Path>>(
     let (scheme, partitions) = detect_partitions(bytes);
 
     if let Some(cb) = progress_cb {
-        cb(&format!("Found {} partitions ({:?})", partitions.len(), scheme), 10);
+        cb(
+            &format!("Found {} partitions ({:?})", partitions.len(), scheme),
+            10,
+        );
     }
 
     // Scan each partition
@@ -129,7 +132,10 @@ pub fn scan_disk_image<P: AsRef<Path>>(
     for (i, part) in partitions.iter().enumerate() {
         if let Some(cb) = progress_cb {
             let pct = 10 + (i as u32 * 60 / total_parts as u32);
-            cb(&format!("Scanning partition {} ({})...", i, part.label), pct);
+            cb(
+                &format!("Scanning partition {} ({})...", i, part.label),
+                pct,
+            );
         }
 
         let end = (part.start_offset + part.size).min(bytes.len());
@@ -307,14 +313,12 @@ fn parse_gpt(data: &[u8]) -> (PartitionScheme, Vec<Partition>) {
 
         // Starting LBA (offset 32 in entry, 8 bytes LE)
         let start_lba = u64::from_le_bytes([
-            entry[32], entry[33], entry[34], entry[35],
-            entry[36], entry[37], entry[38], entry[39],
+            entry[32], entry[33], entry[34], entry[35], entry[36], entry[37], entry[38], entry[39],
         ]) as usize;
 
         // Ending LBA (offset 40 in entry, 8 bytes LE)
         let end_lba = u64::from_le_bytes([
-            entry[40], entry[41], entry[42], entry[43],
-            entry[44], entry[45], entry[46], entry[47],
+            entry[40], entry[41], entry[42], entry[43], entry[44], entry[45], entry[46], entry[47],
         ]) as usize;
 
         if start_lba == 0 || end_lba <= start_lba {
@@ -331,7 +335,11 @@ fn parse_gpt(data: &[u8]) -> (PartitionScheme, Vec<Partition>) {
             .filter_map(|c| {
                 if c.len() == 2 {
                     let ch = u16::from_le_bytes([c[0], c[1]]);
-                    if ch == 0 { None } else { char::from_u32(ch as u32) }
+                    if ch == 0 {
+                        None
+                    } else {
+                        char::from_u32(ch as u32)
+                    }
                 } else {
                     None
                 }
@@ -386,10 +394,9 @@ fn detect_filesystem(data: &[u8], offset: usize) -> String {
     }
 
     // ext2/3/4: magic 0xEF53 at offset 1080
-    if s.len() > 1082
-        && s[1080] == 0x53 && s[1081] == 0xEF {
-            return "ext2/3/4".into();
-        }
+    if s.len() > 1082 && s[1080] == 0x53 && s[1081] == 0xEF {
+        return "ext2/3/4".into();
+    }
 
     // HFS+: "H+" at offset 1024
     if s.len() > 1026 && &s[1024..1026] == b"H+" {
@@ -428,10 +435,7 @@ fn mbr_type_name(type_byte: u8) -> String {
 fn mmap_file(path: &Path) -> Result<memmap2::Mmap, DiskImageError> {
     let file = std::fs::File::open(path)?;
     // SAFETY: We only read the mapped region, and the file is kept open.
-    unsafe {
-        memmap2::Mmap::map(&file)
-            .map_err(|e| DiskImageError::MmapFailed(e.to_string()))
-    }
+    unsafe { memmap2::Mmap::map(&file).map_err(|e| DiskImageError::MmapFailed(e.to_string())) }
 }
 
 /// Internal wrapper to handle owned vs mmap'd data.
@@ -482,15 +486,15 @@ mod tests {
     #[test]
     fn test_detect_mbr_with_partition() {
         let mut data = vec![0u8; 65536]; // 128 sectors
-        // Set MBR boot signature
+                                         // Set MBR boot signature
         data[510] = 0x55;
         data[511] = 0xAA;
         // Create a FAT32 partition entry at slot 0 (offset 446)
         data[446] = 0x80; // active
         data[450] = 0x0C; // FAT32 LBA
-        // Start LBA = 1 (sector 1 = offset 512)
+                          // Start LBA = 1 (sector 1 = offset 512)
         data[454] = 1; // LBA start LE
-        // Size = 64 sectors
+                       // Size = 64 sectors
         data[458] = 64; // sectors LE
         let (scheme, parts) = detect_partitions(&data);
         assert_eq!(scheme, PartitionScheme::Mbr);

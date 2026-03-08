@@ -60,3 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CVE-2018-0986 exploit RAR tested — handled safely
 - Path traversal prevention in extracted filenames
 - Weekly automated dependency security audit
+
+### Requirements
+- **MSRV: Rust 1.88** (required by actix-web 4.13, rayon 1.11)
+- System libraries: liblzma-dev, libbz2-dev (Linux); xz (macOS)

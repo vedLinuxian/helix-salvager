@@ -28,15 +28,26 @@ fn data_dir() -> PathBuf {
 }
 
 /// Load a real file from the test_real_world directory.
-fn load(name: &str) -> Vec<u8> {
+/// Returns None if the file doesn't exist (e.g., on CI where test data isn't downloaded).
+fn try_load(name: &str) -> Option<Vec<u8>> {
     let path = data_dir().join(name);
-    std::fs::read(&path).unwrap_or_else(|e| {
-        panic!(
-            "Cannot read real test file {}: {} (download with start.sh test first)",
-            path.display(),
-            e
-        )
-    })
+    std::fs::read(&path).ok()
+}
+
+/// Skip-friendly load: use with `skip_if_missing!` macro.
+macro_rules! skip_if_missing {
+    ($name:expr) => {
+        match try_load($name) {
+            Some(data) => data,
+            None => {
+                eprintln!(
+                    "SKIP: test data '{}' not found (run `make test-data` to download)",
+                    $name
+                );
+                return;
+            }
+        }
+    };
 }
 
 /// Zero out 512-byte sectors.
@@ -101,7 +112,7 @@ fn nand_degrade(data: &mut [u8], seed: u64) {
 
 #[test]
 fn real_corkami_simple_zip_intact() {
-    let data = load("corkami_simple.zip");
+    let data = skip_if_missing!("corkami_simple.zip");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "zip");
@@ -114,7 +125,7 @@ fn real_corkami_simple_zip_intact() {
 
 #[test]
 fn real_corkami_store_zip_intact() {
-    let data = load("corkami_store.zip");
+    let data = skip_if_missing!("corkami_store.zip");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "zip");
@@ -123,7 +134,7 @@ fn real_corkami_store_zip_intact() {
 
 #[test]
 fn real_corkami_zip64_intact() {
-    let data = load("corkami_zip64.zip");
+    let data = skip_if_missing!("corkami_zip64.zip");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "zip");
@@ -137,7 +148,7 @@ fn real_corkami_zip64_intact() {
 #[test]
 fn real_corkami_dual_zip_intact() {
     // dual.zip has 2 files with same name — tests dedup / overwrite handling
-    let data = load("corkami_dual.zip");
+    let data = skip_if_missing!("corkami_dual.zip");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "zip");
@@ -146,7 +157,7 @@ fn real_corkami_dual_zip_intact() {
 
 #[test]
 fn real_corkami_unicode_zip_intact() {
-    let data = load("corkami_unicode.zip");
+    let data = skip_if_missing!("corkami_unicode.zip");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "zip");
@@ -156,7 +167,7 @@ fn real_corkami_unicode_zip_intact() {
 #[test]
 fn real_fff_pocs_zip_intact() {
     // Funky File Formats — 2.4 MB ZIP from 31C3 talk containing polyglot files
-    let data = load("corkami_fff.zip");
+    let data = skip_if_missing!("corkami_fff.zip");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "zip");
@@ -173,7 +184,7 @@ fn real_fff_pocs_zip_intact() {
 
 #[test]
 fn real_fff_zip_sector_death() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     // Kill 5 sectors in the middle of the 2.4 MB archive
     let mid = data.len() / 512 / 2;
     kill_sectors(&mut data, &[mid, mid + 1, mid + 2, mid + 3, mid + 4]);
@@ -190,7 +201,7 @@ fn real_fff_zip_sector_death() {
 
 #[test]
 fn real_fff_zip_bitrot() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     bitrot(&mut data, 50, 0xCAFEBABE);
 
     let engine = SalvageEngine::new();
@@ -203,7 +214,7 @@ fn real_fff_zip_bitrot() {
 
 #[test]
 fn real_fff_zip_truncated_75() {
-    let data = load("corkami_fff.zip");
+    let data = skip_if_missing!("corkami_fff.zip");
     let cut = &data[..data.len() * 75 / 100];
     let engine = SalvageEngine::new();
     let report = engine.salvage(cut, None);
@@ -215,7 +226,7 @@ fn real_fff_zip_truncated_75() {
 
 #[test]
 fn real_fff_zip_truncated_50() {
-    let data = load("corkami_fff.zip");
+    let data = skip_if_missing!("corkami_fff.zip");
     let cut = &data[..data.len() * 50 / 100];
     let engine = SalvageEngine::new();
     let report = engine.salvage(cut, None);
@@ -227,7 +238,7 @@ fn real_fff_zip_truncated_50() {
 
 #[test]
 fn real_fff_zip_header_destroyed() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     // Destroy the first 64 bytes (ZIP local header + magic)
     data[..64].fill(0x00);
     let engine = SalvageEngine::new();
@@ -241,7 +252,7 @@ fn real_fff_zip_header_destroyed() {
 
 #[test]
 fn real_fff_zip_usb_corruption() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     usb_corrupt(&mut data, 0xDEAD);
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
@@ -253,7 +264,7 @@ fn real_fff_zip_usb_corruption() {
 
 #[test]
 fn real_fff_zip_nand_degradation() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     nand_degrade(&mut data, 0x1234);
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
@@ -266,7 +277,7 @@ fn real_fff_zip_nand_degradation() {
 #[test]
 fn real_simple_zip_completely_destroyed() {
     // Take real simple.zip and overwrite 80% of it
-    let mut data = load("corkami_simple.zip");
+    let mut data = skip_if_missing!("corkami_simple.zip");
     let destroy_len = data.len() * 80 / 100;
     data[..destroy_len].fill(0xCC);
     let engine = SalvageEngine::new();
@@ -281,7 +292,7 @@ fn real_simple_zip_completely_destroyed() {
 
 #[test]
 fn real_rar4_intact() {
-    let data = load("corkami_rar4.rar");
+    let data = skip_if_missing!("corkami_rar4.rar");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     // RAR not natively supported — should detect as unknown, carve what it can
@@ -295,7 +306,7 @@ fn real_rar4_intact() {
 
 #[test]
 fn real_rar5_intact() {
-    let data = load("corkami_rar5.rar");
+    let data = skip_if_missing!("corkami_rar5.rar");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert!(
@@ -308,7 +319,7 @@ fn real_rar5_intact() {
 #[test]
 fn real_2mb_rar_with_prepended_data() {
     // 2mb.rar has 0x1ffff0 bytes of prepended space before the RAR data
-    let data = load("corkami_2mb.rar");
+    let data = skip_if_missing!("corkami_2mb.rar");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     // Even with 2MB of prepended data, carver should find embedded content
@@ -318,7 +329,7 @@ fn real_2mb_rar_with_prepended_data() {
 #[test]
 fn real_cve_2018_0986_rar() {
     // CVE-2018-0986 PoC RAR — this is a real CVE exploit file
-    let data = load("corkami_cve.rar");
+    let data = skip_if_missing!("corkami_cve.rar");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     // Should handle malicious input safely — no panic, no infinite loop
@@ -328,7 +339,7 @@ fn real_cve_2018_0986_rar() {
 #[test]
 fn real_sfx_rar() {
     // SFX RAR — self-extracting archive (has executable header + RAR data)
-    let data = load("corkami_sfx.rar");
+    let data = skip_if_missing!("corkami_sfx.rar");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     // Should process the whole blob, carve any recognizable content
@@ -337,7 +348,7 @@ fn real_sfx_rar() {
 
 #[test]
 fn real_2mb_rar_sector_death() {
-    let mut data = load("corkami_2mb.rar");
+    let mut data = skip_if_missing!("corkami_2mb.rar");
     kill_sectors(&mut data, &[100, 200, 300, 400, 500]);
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
@@ -346,7 +357,7 @@ fn real_2mb_rar_sector_death() {
 
 #[test]
 fn real_2mb_rar_heavy_bitrot() {
-    let mut data = load("corkami_2mb.rar");
+    let mut data = skip_if_missing!("corkami_2mb.rar");
     bitrot(&mut data, 500, 0xBEEF);
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
@@ -360,7 +371,7 @@ fn real_2mb_rar_heavy_bitrot() {
 #[test]
 fn real_xz_archive_intact() {
     // Official 7-Zip Linux binary (XZ compressed tar)
-    let data = load("test_7z.7z");
+    let data = skip_if_missing!("test_7z.7z");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     // XZ magic 0xFD377A585A00 — engine should detect and attempt decompression
@@ -375,7 +386,7 @@ fn real_xz_archive_intact() {
 
 #[test]
 fn real_xz_truncated() {
-    let data = load("test_7z.7z");
+    let data = skip_if_missing!("test_7z.7z");
     let cut = &data[..data.len() / 2];
     let engine = SalvageEngine::new();
     let report = engine.salvage(cut, None);
@@ -385,7 +396,7 @@ fn real_xz_truncated() {
 
 #[test]
 fn real_xz_bitrot() {
-    let mut data = load("test_7z.7z");
+    let mut data = skip_if_missing!("test_7z.7z");
     bitrot(&mut data, 100, 0xABCD);
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
@@ -394,7 +405,7 @@ fn real_xz_bitrot() {
 
 #[test]
 fn real_gzip_tarball_intact() {
-    let data = load("real_gzip.gz");
+    let data = skip_if_missing!("real_gzip.gz");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert!(
@@ -408,7 +419,7 @@ fn real_gzip_tarball_intact() {
 
 #[test]
 fn real_gzip_tarball_truncated() {
-    let data = load("real_gzip.gz");
+    let data = skip_if_missing!("real_gzip.gz");
     let cut = &data[..data.len() * 60 / 100];
     let engine = SalvageEngine::new();
     let report = engine.salvage(cut, None);
@@ -418,7 +429,7 @@ fn real_gzip_tarball_truncated() {
 
 #[test]
 fn real_gzip_tarball_corrupted() {
-    let mut data = load("real_gzip.gz");
+    let mut data = skip_if_missing!("real_gzip.gz");
     usb_corrupt(&mut data, 0x9999);
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
@@ -432,7 +443,7 @@ fn real_gzip_tarball_corrupted() {
 #[test]
 fn real_pdf_as_unknown_input() {
     // Feed a real PDF (not an archive) — should detect as unknown, carve the PDF itself
-    let data = load("sample.pdf");
+    let data = skip_if_missing!("sample.pdf");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "unknown");
@@ -445,7 +456,7 @@ fn real_pdf_as_unknown_input() {
 
 #[test]
 fn real_png_as_unknown_input() {
-    let data = load("sample.png");
+    let data = skip_if_missing!("sample.png");
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
     assert_eq!(report.archive_type, "unknown");
@@ -462,7 +473,7 @@ fn real_png_as_unknown_input() {
 
 #[test]
 fn real_fff_zip_50_percent_zeroed() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     // Zero out the second half of the archive
     let half = data.len() / 2;
     data[half..].fill(0x00);
@@ -477,7 +488,7 @@ fn real_fff_zip_50_percent_zeroed() {
 
 #[test]
 fn real_fff_zip_every_other_sector_dead() {
-    let mut data = load("corkami_fff.zip");
+    let mut data = skip_if_missing!("corkami_fff.zip");
     let sectors: Vec<usize> = (0..data.len() / 512).step_by(2).collect();
     kill_sectors(&mut data, &sectors);
     let engine = SalvageEngine::new();
@@ -489,7 +500,7 @@ fn real_fff_zip_every_other_sector_dead() {
 #[test]
 fn real_mixed_corruption_gzip() {
     // Combine bitrot + sector death on a real gzip
-    let mut data = load("real_gzip.gz");
+    let mut data = skip_if_missing!("real_gzip.gz");
     bitrot(&mut data, 30, 0x7777);
     kill_sectors(&mut data, &[0, 5, 10]);
     let engine = SalvageEngine::new();
@@ -499,7 +510,7 @@ fn real_mixed_corruption_gzip() {
 
 #[test]
 fn real_xz_header_destroyed() {
-    let mut data = load("test_7z.7z");
+    let mut data = skip_if_missing!("test_7z.7z");
     // Destroy XZ magic bytes
     data[..12].fill(0x00);
     let engine = SalvageEngine::new();
@@ -511,10 +522,10 @@ fn real_xz_header_destroyed() {
 #[test]
 fn real_concatenated_real_files() {
     // Concatenate multiple real files into one blob (simulates disk image carving)
-    let pdf = load("sample.pdf");
-    let png = load("sample.png");
-    let txt = load("sample.txt");
-    let zip = load("corkami_simple.zip");
+    let pdf = skip_if_missing!("sample.pdf");
+    let png = skip_if_missing!("sample.png");
+    let txt = skip_if_missing!("sample.txt");
+    let zip = skip_if_missing!("corkami_simple.zip");
 
     let mut blob = Vec::new();
     blob.extend(vec![0xAA; 512]); // garbage prefix
@@ -523,7 +534,7 @@ fn real_concatenated_real_files() {
     blob.extend_from_slice(&png);
     blob.extend(vec![0xBB; 128]); // gap
     blob.extend_from_slice(&zip);
-    blob.extend(vec![0xCC; 64]);  // gap
+    blob.extend(vec![0xCC; 64]); // gap
     blob.extend_from_slice(&txt);
     blob.extend(vec![0xDD; 512]); // garbage suffix
 
@@ -541,7 +552,7 @@ fn real_concatenated_real_files() {
 fn real_disk_image_simulation() {
     // Simulate a raw disk image fragment: FFF ZIP embedded at offset 4096
     // with garbage sectors before and after
-    let zip = load("corkami_fff.zip");
+    let zip = skip_if_missing!("corkami_fff.zip");
     let mut disk = vec![0x00; 4096]; // empty sectors
     disk.extend_from_slice(&zip);
     disk.extend(vec![0xFF; 4096]); // unallocated space

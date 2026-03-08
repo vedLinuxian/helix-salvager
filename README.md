@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Rust-1.75+-orange?style=flat-square&logo=rust" alt="Rust">
+  <img src="https://img.shields.io/badge/Rust-1.88+-orange?style=flat-square&logo=rust" alt="Rust">
   <img src="https://img.shields.io/badge/License-MIT%2FApache--2.0-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/Tests-179%20passing-brightgreen?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/Clippy-0%20warnings-brightgreen?style=flat-square" alt="Clippy">
@@ -315,7 +315,7 @@ curl http://localhost:5001/api/dashboard
 ## Docker
 
 ```dockerfile
-FROM rust:1.75 AS builder
+FROM rust:1.88 AS builder
 WORKDIR /app
 COPY . .
 RUN cargo build --release

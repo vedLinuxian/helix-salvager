@@ -27,7 +27,9 @@ fn make_realistic_zip() -> Vec<u8> {
 
     // File 1: A fake JPEG (valid header + random-ish data)
     writer.start_file("photos/vacation.jpg", stored).unwrap();
-    let mut jpeg = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00];
+    let mut jpeg = vec![
+        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00,
+    ];
     jpeg.extend((0..2000).map(|i| ((i * 7 + 13) % 256) as u8));
     jpeg.extend_from_slice(&[0xFF, 0xD9]);
     writer.write_all(&jpeg).unwrap();
@@ -44,13 +46,13 @@ fn make_realistic_zip() -> Vec<u8> {
     png.push(2); // color type (RGB)
     png.extend_from_slice(&[0x00, 0x00, 0x00]); // compression, filter, interlace
     png.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // CRC placeholder
-    // IDAT chunk with fake data
+                                                      // IDAT chunk with fake data
     let fake_idat: Vec<u8> = (0..1500).map(|i| ((i * 11 + 3) % 256) as u8).collect();
     png.extend_from_slice(&(fake_idat.len() as u32).to_be_bytes());
     png.extend_from_slice(b"IDAT");
     png.extend_from_slice(&fake_idat);
     png.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // CRC placeholder
-    // IEND chunk
+                                                      // IEND chunk
     png.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
     png.extend_from_slice(b"IEND");
     png.extend_from_slice(&[0xAE, 0x42, 0x60, 0x82]);
@@ -77,7 +79,9 @@ fn make_realistic_zip() -> Vec<u8> {
     writer.start_file("documents/invoice.pdf", stored).unwrap();
     let mut pdf = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n".to_vec();
     pdf.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-    pdf.extend_from_slice(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n");
+    pdf.extend_from_slice(
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n",
+    );
     pdf.extend((0..800).map(|i| ((i * 3 + 7) % 256) as u8));
     pdf.extend_from_slice(b"\n%%EOF\n");
     writer.write_all(&pdf).unwrap();
@@ -500,28 +504,31 @@ fn test_concatenated_files_no_archive() {
 
     // JPEG
     data.extend_from_slice(&[0xFF, 0xD8, 0xFF, 0xE0]);
-    data.extend(std::iter::repeat(0x42u8).take(500));
+    data.extend(std::iter::repeat_n(0x42u8, 500));
     data.extend_from_slice(&[0xFF, 0xD9]);
 
     // Garbage gap
-    data.extend(std::iter::repeat(0x00u8).take(100));
+    data.extend(std::iter::repeat_n(0x00u8, 100));
 
     // PNG
     data.extend_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-    data.extend(std::iter::repeat(0x55u8).take(300));
+    data.extend(std::iter::repeat_n(0x55u8, 300));
     data.extend_from_slice(b"IEND");
     data.extend_from_slice(&[0xAE, 0x42, 0x60, 0x82]);
 
     // PDF
     data.extend_from_slice(b"%PDF-1.7 ");
-    data.extend(std::iter::repeat(0x20u8).take(200));
+    data.extend(std::iter::repeat_n(0x20u8, 200));
     data.extend_from_slice(b"%%EOF\n");
 
     let engine = SalvageEngine::new();
     let report = engine.salvage(&data, None);
 
     assert_eq!(report.archive_type, "unknown");
-    assert_eq!(report.files_salvaged, 3, "Should carve 3 concatenated files");
+    assert_eq!(
+        report.files_salvaged, 3,
+        "Should carve 3 concatenated files"
+    );
 }
 
 #[test]

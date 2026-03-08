@@ -5,7 +5,7 @@
 # Run:    docker run -p 5001:5001 helix-salvager
 # CLI:    docker run -v $(pwd):/data helix-salvager salvager recover /data/file.zip -o /data/out/
 
-FROM rust:1.75-bookworm AS builder
+FROM rust:1.88-bookworm AS builder
 
 WORKDIR /build
 
