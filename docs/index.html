@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helix Salvager — Corrupt Archive Recovery Engine</title>
+    <meta name="description" content="Open-source corrupt archive recovery engine. Recover files from damaged ZIP, RAR, 7z, tar.gz archives with fail-forward architecture. 29 file signatures, deep validation, plugin system.">
+    <meta name="keywords" content="file recovery, corrupt archive, data recovery, zip repair, rar recovery, rust, open source">
+    <meta name="author" content="Ved Prakash Pandey">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Helix Salvager — Corrupt Archive Recovery Engine">
+    <meta property="og:description" content="Recover files from corrupt archives that other tools abandon. Fail-forward architecture saves what can be saved.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vedLinuxian.github.io/helix-salvager/">
+
+    <!-- Favicon (DNA emoji fallback) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ═══════════════════════════════════════════ */
+        /*  CSS Custom Properties                      */
+        /* ═══════════════════════════════════════════ */
+        :root {
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+            --space-3xl: 4rem;
+            --space-4xl: 6rem;
+
+            /* Animation */
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a2e;
+            --bg-card: #16161f;
+            --bg-card-hover: #1c1c2a;
+            --surface-glow: rgba(99, 102, 241, 0.08);
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b8;
+            --text-tertiary: #6b6b82;
+            --accent: #818cf8;
+            --accent-bright: #a5b4fc;
+            --accent-dim: #4f46e5;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-bright: rgba(255, 255, 255, 0.12);
+            --gradient-hero: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            --gradient-accent: linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899);
+            --gradient-card: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(124, 58, 237, 0.05));
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f3f4f6;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f9fafb;
+            --surface-glow: rgba(79, 70, 229, 0.04);
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-tertiary: #9ca3af;
+            --accent: #4f46e5;
+            --accent-bright: #6366f1;
+            --accent-dim: #3730a3;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --border: rgba(0, 0, 0, 0.06);
+            --border-bright: rgba(0, 0, 0, 0.12);
+            --gradient-hero: linear-gradient(135deg, #fafafa 0%, #eef2ff 50%, #fafafa 100%);
+            --gradient-accent: linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899);
+            --gradient-card: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(124, 58, 237, 0.02));
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+            --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.08);
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Reset & Base                               */
+        /* ═══════════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a { color: var(--accent-bright); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--accent); }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Animated Background                        */
+        /* ═══════════════════════════════════════════ */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+            animation: float 20s ease-in-out infinite;
+        }
+        .bg-orb-1 { width: 600px; height: 600px; top: -200px; left: -100px; background: var(--accent-dim); animation-delay: 0s; }
+        .bg-orb-2 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: #7c3aed; animation-delay: -7s; }
+        .bg-orb-3 { width: 300px; height: 300px; top: 50%; left: 60%; background: #ec4899; opacity: 0.2; animation-delay: -14s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Layout                                     */
+        /* ═══════════════════════════════════════════ */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        section {
+            padding: var(--space-4xl) 0;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Navigation                                 */
+        /* ═══════════════════════════════════════════ */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: var(--space-md) 0;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(10, 10, 15, 0.7);
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s var(--ease-out);
+        }
+        [data-theme="light"] .nav { background: rgba(250, 250, 250, 0.8); }
+
+        .nav.scrolled {
+            padding: var(--space-sm) 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .nav-brand .dna-icon {
+            font-size: 1.4rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-bright);
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--bg-card-hover);
+            transform: scale(1.05);
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Hero                                       */
+        /* ═══════════════════════════════════════════ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 80px;
+            background: var(--gradient-hero);
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 6px 16px;
+            border-radius: 100px;
+            background: var(--gradient-card);
+            border: 1px solid var(--border-bright);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--accent-bright);
+            margin-bottom: var(--space-xl);
+            animation: fadeUp 0.8s var(--ease-out) both;
+        }
+
+        .hero-badge .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 7vw, 4.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: var(--space-lg);
+            animation: fadeUp 0.8s var(--ease-out) 0.1s both;
+        }
+
+        .hero h1 .gradient-text {
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-description {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto var(--space-2xl);
+            line-height: 1.7;
+            animation: fadeUp 0.8s var(--ease-out) 0.2s both;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeUp 0.8s var(--ease-out) 0.3s both;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s var(--ease-out);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(79, 70, 229, 0.4);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-bright);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            color: var(--text-primary);
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-3xl);
+            margin-top: var(--space-3xl);
+            animation: fadeUp 0.8s var(--ease-out) 0.4s both;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Terminal Demo                              */
+        /* ═══════════════════════════════════════════ */
+        .terminal-section {
+            padding: var(--space-4xl) 0;
+        }
+
+        .terminal {
+            background: #0d1117;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            border: 1px solid rgba(255,255,255,0.08);
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .terminal-dot.red { background: #ff5f57; }
+        .terminal-dot.yellow { background: #febc2e; }
+        .terminal-dot.green { background: #28c840; }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            color: #8b949e;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+
+        .terminal-body {
+            padding: 20px 24px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.8;
+            color: #c9d1d9;
+            min-height: 260px;
+        }
+
+        .terminal-body .prompt { color: #7ee787; }
+        .terminal-body .cmd { color: #f0f0f5; }
+        .terminal-body .flag { color: #79c0ff; }
+        .terminal-body .path { color: #ffa657; }
+        .terminal-body .comment { color: #8b949e; }
+        .terminal-body .success { color: #3fb950; }
+        .terminal-body .info { color: #58a6ff; }
+        .terminal-body .dim { color: #484f58; }
+        .terminal-body .accent { color: #d2a8ff; }
+
+        .terminal-line {
+            opacity: 0;
+            animation: terminalLine 0.3s var(--ease-out) forwards;
+        }
+
+        @keyframes terminalLine {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Section Headers                            */
+        /* ═══════════════════════════════════════════ */
+        .section-header {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .section-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: var(--space-sm);
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: var(--space-md);
+        }
+
+        .section-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Comparison: Before / After                 */
+        /* ═══════════════════════════════════════════ */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-xl);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .comparison-card {
+            padding: var(--space-xl);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .comparison-card.before {
+            background: rgba(248, 113, 113, 0.05);
+            border-color: rgba(248, 113, 113, 0.15);
+        }
+
+        .comparison-card.after {
+            background: rgba(52, 211, 153, 0.05);
+            border-color: rgba(52, 211, 153, 0.15);
+        }
+
+        .comparison-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: var(--space-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .comparison-card.before h3 { color: var(--danger); }
+        .comparison-card.after h3 { color: var(--success); }
+
+        .comparison-card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .comparison-card li {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .comparison-card li .icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .comparison-card.before li .icon { color: var(--danger); }
+        .comparison-card.after li .icon { color: var(--success); }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Feature Grid                               */
+        /* ═══════════════════════════════════════════ */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: var(--space-xl);
+            transition: all 0.3s var(--ease-out);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-card);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-bright);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+        }
+
+        .feature-card:hover::before { opacity: 1; }
+
+        .feature-card > * { position: relative; z-index: 1; }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: var(--space-md);
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+        }
+
+        .feature-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .feature-card p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Architecture Diagram                       */
+        /* ═══════════════════════════════════════════ */
+        .arch-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-md);
+            flex-wrap: wrap;
+            margin: var(--space-2xl) 0;
+        }
+
+        .arch-node {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: var(--space-md) var(--space-lg);
+            text-align: center;
+            min-width: 140px;
+            transition: all 0.3s var(--ease-out);
+        }
+
+        .arch-node:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-2px);
+        }
+
+        .arch-node .node-icon { font-size: 1.5rem; margin-bottom: 4px; }
+        .arch-node .node-label { font-size: 0.8rem; font-weight: 600; }
+        .arch-node .node-detail { font-size: 0.7rem; color: var(--text-tertiary); }
+
+        .arch-arrow {
+            color: var(--accent);
+            font-size: 1.2rem;
+            animation: arrowPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Formats Table                              */
+        /* ═══════════════════════════════════════════ */
+        .formats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: var(--space-md);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .format-chip {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-md);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s var(--ease-out);
+        }
+
+        .format-chip:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .format-chip .ext {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: var(--surface-glow);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Stats Bar                                  */
+        /* ═══════════════════════════════════════════ */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-lg);
+            padding: var(--space-2xl);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            margin: var(--space-3xl) 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: clamp(1.8rem, 3vw, 2.5rem);
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Install Section                            */
+        /* ═══════════════════════════════════════════ */
+        .install-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .install-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: var(--space-xl);
+            text-align: center;
+            transition: all 0.3s var(--ease-out);
+        }
+
+        .install-card:hover {
+            border-color: var(--border-bright);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .install-card .install-icon {
+            font-size: 2rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .install-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .install-card .install-cmd {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #c9d1d9;
+            text-align: left;
+            margin-top: var(--space-md);
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: rgba(255,255,255,0.15); color: #c9d1d9; }
+
+        /* ═══════════════════════════════════════════ */
+        /*  CTA Section                                */
+        /* ═══════════════════════════════════════════ */
+        .cta-section {
+            text-align: center;
+            padding: var(--space-4xl) 0;
+        }
+
+        .cta-box {
+            background: var(--gradient-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: var(--space-3xl) var(--space-2xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent 0%, var(--accent-dim) 10%, transparent 20%);
+            animation: rotate 8s linear infinite;
+            opacity: 0.1;
+        }
+
+        @keyframes rotate { to { transform: rotate(360deg); } }
+
+        .cta-box > * { position: relative; z-index: 1; }
+
+        .cta-box h2 {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-weight: 800;
+            margin-bottom: var(--space-md);
+        }
+
+        .cta-box p {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xl);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Footer                                     */
+        /* ═══════════════════════════════════════════ */
+        .footer {
+            padding: var(--space-2xl) 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-md);
+        }
+
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: var(--space-lg);
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .footer-links a:hover { color: var(--text-primary); }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Animations                                 */
+        /* ═══════════════════════════════════════════ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s var(--ease-out);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Stagger children */
+        .stagger > * {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s var(--ease-out);
+        }
+        .stagger.visible > *:nth-child(1) { transition-delay: 0.0s; }
+        .stagger.visible > *:nth-child(2) { transition-delay: 0.08s; }
+        .stagger.visible > *:nth-child(3) { transition-delay: 0.16s; }
+        .stagger.visible > *:nth-child(4) { transition-delay: 0.24s; }
+        .stagger.visible > *:nth-child(5) { transition-delay: 0.32s; }
+        .stagger.visible > *:nth-child(6) { transition-delay: 0.40s; }
+        .stagger.visible > *:nth-child(7) { transition-delay: 0.48s; }
+        .stagger.visible > *:nth-child(8) { transition-delay: 0.56s; }
+        .stagger.visible > *:nth-child(9) { transition-delay: 0.64s; }
+        .stagger.visible > * { opacity: 0; transform: translateY(20px); }
+        .stagger.visible > * { opacity: 1; transform: translateY(0); }
+
+        /* ═══════════════════════════════════════════ */
+        /*  Responsive                                 */
+        /* ═══════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .comparison { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: 1fr; }
+            .install-options { grid-template-columns: 1fr; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .hero-stats { gap: var(--space-xl); }
+            .arch-flow { flex-direction: column; }
+            .arch-arrow { transform: rotate(90deg); }
+            .footer-content { flex-direction: column; text-align: center; }
+        }
+
+        @media (max-width: 480px) {
+            .hero-stats { flex-direction: column; gap: var(--space-md); }
+            .stats-bar { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background effects -->
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+
+    <!-- ════════════════════ Navigation ════════════════════ -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="#" class="nav-brand">
+                <span class="dna-icon">🧬</span>
+                <span>Helix Salvager</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#formats">Formats</a></li>
+                <li><a href="#install">Install</a></li>
+                <li><a href="https://github.com/vedLinuxian/helix-salvager" target="_blank">GitHub</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+        </div>
+    </nav>
+
+    <!-- ════════════════════ Hero ════════════════════ -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="pulse"></span>
+                    v1.0.0 — Open Source &amp; Free Forever
+                </div>
+
+                <h1>
+                    Recover Files That<br>
+                    <span class="gradient-text">Other Tools Abandon</span>
+                </h1>
+
+                <p class="hero-description">
+                    A corrupt archive recovery engine built in Rust. Fail-forward architecture 
+                    saves every recoverable file — even from severely damaged ZIP, RAR, 7z, and 
+                    tar.gz archives.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="https://github.com/vedLinuxian/helix-salvager" class="btn btn-primary" target="_blank">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        View on GitHub
+                    </a>
+                    <a href="#install" class="btn btn-secondary">
+                        Quick Install →
+                    </a>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">29</div>
+                        <div class="hero-stat-label">File Signatures</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">179</div>
+                        <div class="hero-stat-label">Tests Passing</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">7</div>
+                        <div class="hero-stat-label">Archive Formats</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">0</div>
+                        <div class="hero-stat-label">Clippy Warnings</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ Terminal Demo ════════════════════ -->
+    <section class="terminal-section">
+        <div class="container">
+            <div class="terminal reveal" id="terminalDemo">
+                <div class="terminal-header">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                    <span class="terminal-title">helix-salvager — bash</span>
+                </div>
+                <div class="terminal-body" id="terminalBody">
+                    <!-- Lines injected by JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ Problem / Solution ════════════════════ -->
+    <section id="problem">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-label">The Problem</div>
+                <h2 class="section-title">Standard Tools Give Up. Helix Doesn't.</h2>
+                <p class="section-subtitle">
+                    When archives are corrupted, traditional tools abort the entire extraction.
+                    Helix uses fail-forward architecture to save everything that can be saved.
+                </p>
+            </div>
+
+            <div class="comparison reveal">
+                <div class="comparison-card before">
+                    <h3><span class="icon">✕</span> Traditional Tools</h3>
+                    <ul>
+                        <li><span class="icon">✕</span> CRC mismatch → entire extraction aborts</li>
+                        <li><span class="icon">✕</span> Corrupted header → "file not recognized"</li>
+                        <li><span class="icon">✕</span> LZMA stream error → zero files recovered</li>
+                        <li><span class="icon">✕</span> Damaged Central Directory → gives up</li>
+                        <li><span class="icon">✕</span> One bad file kills the whole batch</li>
+                    </ul>
+                </div>
+                <div class="comparison-card after">
+                    <h3><span class="icon">✓</span> Helix Salvager</h3>
+                    <ul>
+                        <li><span class="icon">✓</span> CRC errors bypassed — files still extracted</li>
+                        <li><span class="icon">✓</span> Magic-header carving recovers raw files</li>
+                        <li><span class="icon">✓</span> Zombie LZMA decoder resumes after corruption</li>
+                        <li><span class="icon">✓</span> Scans raw bytes — no headers needed</li>
+                        <li><span class="icon">✓</span> Fail-forward: every good file is saved</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ Features ════════════════════ -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-label">Features</div>
+                <h2 class="section-title">Built for the Worst-Case Scenario</h2>
+                <p class="section-subtitle">
+                    Three recovery engines work together to maximize what gets saved.
+                </p>
+            </div>
+
+            <div class="features-grid stagger reveal">
+                <div class="feature-card">
+                    <div class="feature-icon">🧬</div>
+                    <h3>Magic-Header Carving</h3>
+                    <p>Aho-Corasick multi-pattern scan detects 29 file signatures in a single pass — JPEG, PNG, PDF, ZIP, ELF, SQLite, and more.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fail-Forward ZIP</h3>
+                    <p>Bypasses CRC validation errors and continues extracting. One corrupted file doesn't kill the entire archive.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧟</div>
+                    <h3>Zombie LZMA Decoder</h3>
+                    <p>Custom LZMA stream decoder that recovers partial data from corrupted compressed streams instead of aborting.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Deep Validation</h3>
+                    <p>14 file-type validators check internal structure — PNG chunk integrity, JPEG markers, PDF cross-references, ELF headers.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔌</div>
+                    <h3>Plugin System</h3>
+                    <p>Define custom file signatures via JSON. Load proprietary formats, niche file types, or internal data structures.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>Disk Image Scanning</h3>
+                    <p>Parse .img/.dd/.raw files with MBR and GPT partition detection. Recover files from forensic disk images.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌊</div>
+                    <h3>Streaming Mode</h3>
+                    <p>Memory-mapped sliding window processes multi-gigabyte files without loading them entirely into RAM.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Parallel Processing</h3>
+                    <p>Rayon-powered parallel SHA-256 deduplication. Multi-core acceleration for large recoveries.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Web UI & REST API</h3>
+                    <p>Drag-and-drop web interface powered by actix-web. Upload corrupt files and download recovered data instantly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ How It Works ════════════════════ -->
+    <section id="how-it-works">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-label">Architecture</div>
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">
+                    Three-engine pipeline with automatic fallback and deduplication.
+                </p>
+            </div>
+
+            <div class="arch-flow reveal">
+                <div class="arch-node">
+                    <div class="node-icon">📦</div>
+                    <div class="node-label">Corrupt Archive</div>
+                    <div class="node-detail">ZIP/RAR/7z/tar.gz</div>
+                </div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-node">
+                    <div class="node-icon">🔧</div>
+                    <div class="node-label">Engine 1</div>
+                    <div class="node-detail">Fail-Forward Extract</div>
+                </div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-node">
+                    <div class="node-icon">🧟</div>
+                    <div class="node-label">Engine 2</div>
+                    <div class="node-detail">Zombie LZMA Decode</div>
+                </div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-node">
+                    <div class="node-icon">🧬</div>
+                    <div class="node-label">Engine 3</div>
+                    <div class="node-detail">Magic-Header Carving</div>
+                </div>
+                <span class="arch-arrow">→</span>
+                <div class="arch-node">
+                    <div class="node-icon">✅</div>
+                    <div class="node-label">Validate & Dedup</div>
+                    <div class="node-detail">SHA-256 + Structure</div>
+                </div>
+            </div>
+
+            <!-- Stats bar -->
+            <div class="stats-bar reveal">
+                <div class="stat-item">
+                    <div class="stat-number" data-count="29">0</div>
+                    <div class="stat-label">File Signatures</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-count="14">0</div>
+                    <div class="stat-label">Validators</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-count="179">0</div>
+                    <div class="stat-label">Tests Passing</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-count="7">0</div>
+                    <div class="stat-label">Archive Formats</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ Supported Formats ════════════════════ -->
+    <section id="formats">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-label">Compatibility</div>
+                <h2 class="section-title">Supported Formats</h2>
+                <p class="section-subtitle">Archives and file types detected by the recovery engine.</p>
+            </div>
+
+            <div class="section-header reveal" style="margin-bottom: var(--space-lg);">
+                <div class="section-label" style="color: var(--success);">Archive Formats</div>
+            </div>
+            <div class="formats-grid stagger reveal">
+                <div class="format-chip"><span class="ext">.zip</span> ZIP</div>
+                <div class="format-chip"><span class="ext">.rar</span> RAR v4/v5</div>
+                <div class="format-chip"><span class="ext">.7z</span> 7-Zip / LZMA</div>
+                <div class="format-chip"><span class="ext">.tar.gz</span> Gzip</div>
+                <div class="format-chip"><span class="ext">.tar.bz2</span> Bzip2</div>
+                <div class="format-chip"><span class="ext">.tar.xz</span> XZ</div>
+                <div class="format-chip"><span class="ext">.tar</span> TAR</div>
+            </div>
+
+            <div class="section-header reveal" style="margin-top: var(--space-2xl); margin-bottom: var(--space-lg);">
+                <div class="section-label" style="color: var(--accent);">29 Detectable File Types</div>
+            </div>
+            <div class="formats-grid stagger reveal">
+                <div class="format-chip"><span class="ext">.jpg</span> JPEG</div>
+                <div class="format-chip"><span class="ext">.png</span> PNG</div>
+                <div class="format-chip"><span class="ext">.gif</span> GIF</div>
+                <div class="format-chip"><span class="ext">.bmp</span> BMP</div>
+                <div class="format-chip"><span class="ext">.tiff</span> TIFF</div>
+                <div class="format-chip"><span class="ext">.webp</span> WebP</div>
+                <div class="format-chip"><span class="ext">.ico</span> ICO</div>
+                <div class="format-chip"><span class="ext">.pdf</span> PDF</div>
+                <div class="format-chip"><span class="ext">.mp3</span> MP3</div>
+                <div class="format-chip"><span class="ext">.mp4</span> MP4</div>
+                <div class="format-chip"><span class="ext">.flac</span> FLAC</div>
+                <div class="format-chip"><span class="ext">.ogg</span> OGG</div>
+                <div class="format-chip"><span class="ext">.avi</span> AVI</div>
+                <div class="format-chip"><span class="ext">.xml</span> XML</div>
+                <div class="format-chip"><span class="ext">.sqlite</span> SQLite</div>
+                <div class="format-chip"><span class="ext">.wasm</span> WASM</div>
+                <div class="format-chip"><span class="ext">.elf</span> ELF</div>
+                <div class="format-chip"><span class="ext">.exe</span> PE/EXE</div>
+                <div class="format-chip"><span class="ext">.class</span> Java</div>
+                <div class="format-chip"><span class="ext">.dex</span> Android DEX</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ Install ════════════════════ -->
+    <section id="install">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-label">Get Started</div>
+                <h2 class="section-title">Install in Seconds</h2>
+                <p class="section-subtitle">Three ways to get Helix Salvager running.</p>
+            </div>
+
+            <div class="install-options stagger reveal">
+                <div class="install-card">
+                    <div class="install-icon">🦀</div>
+                    <h3>Build from Source</h3>
+                    <div class="install-cmd">
+                        <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                        <code>git clone https://github.com/vedLinuxian/helix-salvager.git<br>cd helix-salvager<br>cargo build --release</code>
+                    </div>
+                </div>
+
+                <div class="install-card">
+                    <div class="install-icon">🐳</div>
+                    <h3>Docker</h3>
+                    <div class="install-cmd">
+                        <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                        <code>docker build -t helix-salvager .<br>docker run -p 3000:3000 \<br>&nbsp;&nbsp;helix-salvager</code>
+                    </div>
+                </div>
+
+                <div class="install-card">
+                    <div class="install-icon">🚀</div>
+                    <h3>Quick Start</h3>
+                    <div class="install-cmd">
+                        <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                        <code>./start.sh<br><span style="color:#8b949e"># Opens web UI at</span><br><span style="color:#8b949e"># http://localhost:3000</span></code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ CTA ════════════════════ -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-box reveal">
+                <h2>Stop Losing Files to Corruption</h2>
+                <p>Helix Salvager is free, open-source, and built to handle the archives other tools refuse to touch.</p>
+                <div style="display:flex;gap:var(--space-md);justify-content:center;flex-wrap:wrap;">
+                    <a href="https://github.com/vedLinuxian/helix-salvager" class="btn btn-primary" target="_blank">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                        Star on GitHub
+                    </a>
+                    <a href="https://github.com/vedLinuxian/helix-salvager/issues" class="btn btn-secondary" target="_blank">
+                        Report an Issue
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════ Footer ════════════════════ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-text">
+                    🧬 Helix Salvager — MIT / Apache-2.0 — Built by <a href="https://github.com/vedLinuxian">Ved Prakash Pandey</a>
+                </div>
+                <ul class="footer-links">
+                    <li><a href="https://github.com/vedLinuxian/helix-salvager" target="_blank">GitHub</a></li>
+                    <li><a href="https://github.com/vedLinuxian/helix-salvager/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+                    <li><a href="https://github.com/vedLinuxian/helix-salvager/blob/main/CHANGELOG.md" target="_blank">Changelog</a></li>
+                    <li><a href="https://github.com/vedLinuxian/helix-salvager/blob/main/SECURITY.md" target="_blank">Security</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ════════════════════ Script ════════════════════ -->
+    <script>
+        // ─── Theme Toggle ───
+        const THEME_KEY = 'helix-theme';
+        const toggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        function setTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            localStorage.setItem(THEME_KEY, theme);
+            toggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+        }
+
+        // Load saved theme
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved) setTheme(saved);
+
+        toggle.addEventListener('click', () => {
+            setTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        });
+
+        // ─── Nav Scroll Effect ───
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // ─── Intersection Observer (Reveal + Stagger) ───
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+        document.querySelectorAll('.reveal, .stagger').forEach(el => observer.observe(el));
+
+        // ─── Animated Counter ───
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const target = parseInt(el.dataset.count);
+                    const duration = 1500;
+                    const start = performance.now();
+
+                    function animate(now) {
+                        const progress = Math.min((now - start) / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        el.textContent = Math.round(eased * target);
+                        if (progress < 1) requestAnimationFrame(animate);
+                    }
+
+                    requestAnimationFrame(animate);
+                    counterObserver.unobserve(el);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('[data-count]').forEach(el => counterObserver.observe(el));
+
+        // ─── Terminal Animation ───
+        const terminalLines = [
+            { text: '<span class="prompt">$</span> <span class="cmd">salvager recover</span> <span class="path">damaged_photos.zip</span> <span class="flag">-o recovered/</span>', delay: 0 },
+            { text: '', delay: 200 },
+            { text: '<span class="accent">🧬 Helix Salvager v1.0.0</span>', delay: 400 },
+            { text: '<span class="dim">───────────────────────────────────────</span>', delay: 500 },
+            { text: '<span class="info">  Engine 1:</span> Fail-forward ZIP extraction...', delay: 800 },
+            { text: '<span class="success">    ✓ vacation_001.jpg</span> <span class="dim">(2.4 MB)</span>', delay: 1100 },
+            { text: '<span class="success">    ✓ vacation_002.jpg</span> <span class="dim">(3.1 MB)</span>', delay: 1300 },
+            { text: '    <span style="color:#f87171">✗ vacation_003.jpg (CRC error — skipped)</span>', delay: 1500 },
+            { text: '<span class="success">    ✓ vacation_004.jpg</span> <span class="dim">(1.8 MB)</span>', delay: 1700 },
+            { text: '<span class="info">  Engine 2:</span> Zombie LZMA decode...', delay: 2100 },
+            { text: '<span class="success">    ✓ document.pdf</span> <span class="dim">(recovered partial stream)</span>', delay: 2500 },
+            { text: '<span class="info">  Engine 3:</span> Magic-header carving (29 signatures)...', delay: 2900 },
+            { text: '<span class="success">    ✓ vacation_003.jpg</span> <span class="dim">(carved from raw bytes)</span>', delay: 3300 },
+            { text: '', delay: 3500 },
+            { text: '<span class="dim">───────────────────────────────────────</span>', delay: 3600 },
+            { text: '<span class="success">  ✓ 5 files recovered</span> <span class="dim">| 10.8 MB | 0.3s</span>', delay: 3800 },
+            { text: '<span class="dim">  SHA-256 dedup: 0 duplicates removed</span>', delay: 4000 },
+        ];
+
+        const terminalBody = document.getElementById('terminalBody');
+        let terminalStarted = false;
+
+        const termObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !terminalStarted) {
+                terminalStarted = true;
+                terminalLines.forEach((line, i) => {
+                    setTimeout(() => {
+                        const div = document.createElement('div');
+                        div.className = 'terminal-line';
+                        div.innerHTML = line.text || '&nbsp;';
+                        div.style.animationDelay = '0s';
+                        terminalBody.appendChild(div);
+                        terminalBody.scrollTop = terminalBody.scrollHeight;
+                    }, line.delay);
+                });
+            }
+        }, { threshold: 0.3 });
+
+        termObserver.observe(document.getElementById('terminalDemo'));
+
+        // ─── Copy Button ───
+        function copyCmd(btn) {
+            const code = btn.parentElement.querySelector('code');
+            const text = code.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        }
+
+        // ─── Smooth scroll for nav links ───
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
