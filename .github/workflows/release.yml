@@ -1,0 +1,148 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # ──── Linux x86_64 ────
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: salvager-linux-x86_64
+            ext: ""
+            archive: tar.gz
+          # ──── Windows x86_64 ────
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: salvager-windows-x86_64
+            ext: ".exe"
+            archive: zip
+          # ──── macOS x86_64 (Intel) ────
+          - os: macos-13
+            target: x86_64-apple-darwin
+            artifact_name: salvager-macos-x86_64
+            ext: ""
+            archive: tar.gz
+          # ──── macOS ARM64 (Apple Silicon) ────
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: salvager-macos-aarch64
+            ext: ""
+            archive: tar.gz
+
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.artifact_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.target }}-cargo-
+
+      - name: Build release binaries
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Run tests
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-pc-windows-msvc' || matrix.target == 'x86_64-apple-darwin'
+        run: cargo test --release --target ${{ matrix.target }}
+
+      # ──── Package: Linux & macOS (tar.gz) ────
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          mkdir -p staging/${{ matrix.artifact_name }}
+          cp target/${{ matrix.target }}/release/salvager${{ matrix.ext }} staging/${{ matrix.artifact_name }}/
+          cp target/${{ matrix.target }}/release/salvager-server${{ matrix.ext }} staging/${{ matrix.artifact_name }}/
+          cp -r crates/salvager-server/static staging/${{ matrix.artifact_name }}/
+          cd staging && tar czf ../${{ matrix.artifact_name }}.tar.gz ${{ matrix.artifact_name }}/
+
+      # ──── Package: Windows (zip) ────
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path staging/${{ matrix.artifact_name }} -Force
+          Copy-Item target/${{ matrix.target }}/release/salvager${{ matrix.ext }} staging/${{ matrix.artifact_name }}/
+          Copy-Item target/${{ matrix.target }}/release/salvager-server${{ matrix.ext }} staging/${{ matrix.artifact_name }}/
+          Copy-Item -Recurse crates/salvager-server/static staging/${{ matrix.artifact_name }}/
+          Compress-Archive -Path staging/${{ matrix.artifact_name }} -DestinationPath ${{ matrix.artifact_name }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.${{ matrix.archive }}
+          retention-days: 30
+
+  # ──── Create GitHub Release with all platform binaries ────
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f | head -20
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/salvager-linux-x86_64/*.tar.gz
+            artifacts/salvager-windows-x86_64/*.zip
+            artifacts/salvager-macos-x86_64/*.tar.gz
+            artifacts/salvager-macos-aarch64/*.tar.gz
+          body: |
+            ## Helix Salvager ${{ github.ref_name }}
+
+            Corrupt archive recovery engine — bypass CRC errors, fail-forward through LZMA corruption, carve files with 29-signature magic-header detection.
+
+            ### Binaries
+            | Platform | File |
+            |----------|------|
+            | Linux x86_64 | `salvager-linux-x86_64.tar.gz` |
+            | Windows x86_64 | `salvager-windows-x86_64.zip` |
+            | macOS Intel | `salvager-macos-x86_64.tar.gz` |
+            | macOS Apple Silicon | `salvager-macos-aarch64.tar.gz` |
+
+            ### Usage
+            ```bash
+            # CLI
+            salvager recover broken_archive.zip -o ./recovered/
+
+            # Web UI
+            ./salvager-server   # opens at http://localhost:5001
+            ```

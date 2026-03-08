@@ -1,0 +1,34 @@
+# Build
+/target/
+**/*.rs.bk
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test artifacts
+test_real_world/
+test_corrupt_*.zip
+test_corrupt_*.7z
+test_photos.*
+
+# Docker
+docker-compose.override.yml
+
+# Releases (track separately)
+releases/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local

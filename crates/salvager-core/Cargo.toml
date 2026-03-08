@@ -1,0 +1,26 @@
+[package]
+name = "salvager-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Corrupt archive recovery engine — fail-forward ZIP extraction, fault-tolerant LZMA decoding, 29-signature magic-header carving"
+readme = "../../README.md"
+keywords = ["archive", "recovery", "corrupt", "zip", "data-recovery"]
+categories = ["command-line-utilities", "compression", "filesystem"]
+
+[dependencies]
+aho-corasick = "1.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+xz2 = "0.1"
+lzma-rs = "0.3"
+zip = "2"
+flate2 = "1"
+bzip2 = "0.5"
+tar = "0.4"
+rayon = "1.10"
+memmap2 = "0.9"

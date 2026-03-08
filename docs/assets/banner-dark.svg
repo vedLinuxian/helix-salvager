@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 120">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="50%" stop-color="#feca57"/>
+      <stop offset="100%" stop-color="#48dbfb"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff9ff3"/>
+      <stop offset="100%" stop-color="#48dbfb"/>
+    </linearGradient>
+  </defs>
+  <rect width="700" height="120" fill="#0d1117" rx="12"/>
+  <!-- DNA Helix icon -->
+  <g transform="translate(30, 20)">
+    <path d="M20 0 C30 20, 10 40, 20 60 C30 80, 10 80, 20 80" stroke="url(#g1)" stroke-width="3" fill="none"/>
+    <path d="M35 0 C25 20, 45 40, 35 60 C25 80, 45 80, 35 80" stroke="url(#g2)" stroke-width="3" fill="none"/>
+    <line x1="22" y1="12" x2="33" y2="12" stroke="#feca57" stroke-width="2" opacity="0.6"/>
+    <line x1="18" y1="28" x2="37" y2="28" stroke="#ff6b6b" stroke-width="2" opacity="0.6"/>
+    <line x1="22" y1="44" x2="33" y2="44" stroke="#48dbfb" stroke-width="2" opacity="0.6"/>
+    <line x1="18" y1="60" x2="37" y2="60" stroke="#feca57" stroke-width="2" opacity="0.6"/>
+    <line x1="22" y1="72" x2="33" y2="72" stroke="#ff9ff3" stroke-width="2" opacity="0.6"/>
+  </g>
+  <text x="100" y="58" font-family="'SF Pro Display', 'Segoe UI', Arial, sans-serif" font-size="42" font-weight="800" fill="url(#g1)">HELIX</text>
+  <text x="280" y="58" font-family="'SF Pro Display', 'Segoe UI', Arial, sans-serif" font-size="42" font-weight="300" fill="#e6edf3">SALVAGER</text>
+  <text x="100" y="85" font-family="'SF Mono', 'Cascadia Code', monospace" font-size="14" fill="#8b949e">Corrupt archive recovery engine</text>
+  <text x="100" y="105" font-family="'SF Mono', 'Cascadia Code', monospace" font-size="11" fill="#484f58">ZIP • 7z • gzip • bzip2 • xz • tar • raw carving</text>
+</svg>

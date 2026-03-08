@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELIX SALVAGER v2.0 — Corrupt Archive Recovery Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+
+    <!-- ═══════════ HERO ═══════════ -->
+    <header class="hero">
+        <div class="hero-bg">
+            <div class="grid-lines"></div>
+            <div class="glow glow-1"></div>
+            <div class="glow glow-2"></div>
+        </div>
+        <div class="hero-inner">
+            <div class="hero-top-bar">
+                <div class="status-chip" id="serverChip">
+                    <span class="status-dot"></span>
+                    <span id="serverStatus">Connecting</span>
+                </div>
+                <button id="themeToggle" class="icon-btn" title="Toggle theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+            </div>
+
+            <div class="hero-center">
+                <div class="dna-visual">
+                    <div class="helix-ring r1"></div>
+                    <div class="helix-ring r2"></div>
+                    <div class="helix-ring r3"></div>
+                    <div class="helix-core"></div>
+                </div>
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        <span class="title-helix">HELIX</span>
+                        <span class="title-salvager">SALVAGER</span>
+                        <span class="title-ver">2.0</span>
+                    </h1>
+                    <p class="hero-sub">Corrupt Archive Recovery Engine — Powered by <span class="rust-hl">Rust</span></p>
+                </div>
+            </div>
+
+            <div class="tech-strip">
+                <div class="tech-tag t-red"><span class="tag-dot"></span>Fail-Forward ZIP</div>
+                <div class="tech-tag t-amber"><span class="tag-dot"></span>Zombie LZMA</div>
+                <div class="tech-tag t-cyan"><span class="tag-dot"></span>AhoCorasick 29-Sig</div>
+                <div class="tech-tag t-purple"><span class="tag-dot"></span>Shannon Entropy</div>
+                <div class="tech-tag t-green"><span class="tag-dot"></span>TaintMap</div>
+                <div class="tech-tag t-teal"><span class="tag-dot"></span>SHA-256 Dedup</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════ LIVE METRICS ═══════════ -->
+    <section class="metrics-bar" id="metricsBar">
+        <div class="metric">
+            <div class="metric-val" id="dashUptime">00:00</div>
+            <div class="metric-lbl">UPTIME</div>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric">
+            <div class="metric-val" id="dashUploads">0</div>
+            <div class="metric-lbl">UPLOADS</div>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric">
+            <div class="metric-val accent-green" id="dashRecovered">0</div>
+            <div class="metric-lbl">RECOVERED</div>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric">
+            <div class="metric-val" id="dashBytes">0 B</div>
+            <div class="metric-lbl">PROCESSED</div>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric">
+            <div class="metric-val accent-amber" id="dashRunning">0</div>
+            <div class="metric-lbl">ACTIVE</div>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric">
+            <div class="metric-val" id="dashCompleted">0</div>
+            <div class="metric-lbl">DONE</div>
+        </div>
+    </section>
+
+    <!-- ═══════════ ARCHITECTURE PANEL ═══════════ -->
+    <section class="panel" id="archPanel">
+        <div class="panel-head">
+            <div class="panel-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="panel-icon"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                <h2>Recovery Architecture</h2>
+            </div>
+            <button class="panel-toggle" data-target="archBody">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+        </div>
+        <div id="archBody" class="panel-body">
+            <div class="arch-pipeline">
+                <div class="arch-stage">
+                    <div class="arch-num">01</div>
+                    <div class="arch-content">
+                        <h3>Fail-Forward Decompressor</h3>
+                        <p>Per-file ZIP isolation. Each entry extracted independently with CRC bypass. LZMA chunks zero-padded on failure. Every file gets its chance.</p>
+                    </div>
+                    <div class="arch-line"></div>
+                </div>
+                <div class="arch-stage">
+                    <div class="arch-num">02</div>
+                    <div class="arch-content">
+                        <h3>Zombie LZMA Decoder</h3>
+                        <p>8-offset byte-slide resync with TaintMap bit-vector. Chunk-level retry across corrupted LZMA2 streams. Marks tainted output regions for quality metadata.</p>
+                    </div>
+                    <div class="arch-line"></div>
+                </div>
+                <div class="arch-stage">
+                    <div class="arch-num">03</div>
+                    <div class="arch-content">
+                        <h3>AhoCorasick Magic Carver</h3>
+                        <p>29 file signatures scanned in single pass. JPEG/PNG/PDF/MP4/ZIP/EXE/ELF/RIFF/TIFF/FLAC/WAV/AVI/WASM/TAR — with file-end refinement and deduplication.</p>
+                    </div>
+                    <div class="arch-line"></div>
+                </div>
+                <div class="arch-stage">
+                    <div class="arch-num">04</div>
+                    <div class="arch-content">
+                        <h3>Decompression Pipelines</h3>
+                        <p>GZIP, BZIP2, XZ transparent decompression. TAR archive extraction with nested file recovery. Shannon entropy gating rejects noise blocks.</p>
+                    </div>
+                    <div class="arch-line"></div>
+                </div>
+                <div class="arch-stage">
+                    <div class="arch-num">05</div>
+                    <div class="arch-content">
+                        <h3>Integrity Reporter</h3>
+                        <p>SHA-256 per file. Content-based deduplication for raw carves. Type breakdown, downloadable recovery ZIP, and full audit trail.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ PROGRESS OVERLAY ═══════════ -->
+    <div id="progressOverlay" class="overlay hidden">
+        <div class="progress-modal">
+            <div class="progress-anim">
+                <div class="scan-ring"></div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="progress-icon"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+            </div>
+            <h2 id="progressTitle" class="progress-title">RECOVERING</h2>
+            <div class="progress-track">
+                <div id="progressBar" class="progress-fill"></div>
+            </div>
+            <div class="progress-info">
+                <span class="progress-pct" id="progressPercent">0%</span>
+                <span id="progressElapsed" class="progress-time">0.0s</span>
+            </div>
+            <div id="progressPhase" class="progress-phase">Initializing engine...</div>
+            <div class="progress-steps" id="progressSteps"></div>
+            <div class="progress-log" id="progressLog"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════ RECOVERY SECTION ═══════════ -->
+    <section class="panel recovery-panel" id="recoveryPanel">
+        <div class="panel-head">
+            <div class="panel-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="panel-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                <h2>Corrupt Archive Recovery</h2>
+            </div>
+            <div class="engine-badge">FAIL-FORWARD</div>
+        </div>
+
+        <p class="recovery-desc">Drop any corrupt archive. The engine bypasses CRC errors, fail-forwards through LZMA corruption, decompresses GZIP/BZIP2/XZ streams, extracts TAR contents, and carves files using 29 magic-header signatures.</p>
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept=".zip,.7z,.rar,.gz,.bz2,.xz,.tar,.lzma,.tgz,.tar.gz,.tar.bz2,.tar.xz" hidden>
+            <div class="drop-content" id="dropContent">
+                <div class="drop-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="drop-icon"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="drop-text">Drop corrupt archive here</p>
+                <p class="drop-hint">or <a href="#" id="browseLink" class="drop-link">browse files</a></p>
+                <div class="drop-formats">.zip .7z .rar .gz .bz2 .xz .tar .lzma</div>
+            </div>
+            <div id="fileInfo" class="file-chip hidden">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span id="fileName" class="chip-name"></span>
+                <span id="fileSize" class="chip-size"></span>
+                <button id="fileClear" class="chip-clear">&times;</button>
+            </div>
+        </div>
+
+        <!-- Hex Preview -->
+        <div id="hexPreview" class="hex-panel hidden">
+            <div class="hex-head">
+                <span class="hex-label">HEADER PREVIEW</span>
+                <span id="hexMagic" class="hex-detected"></span>
+            </div>
+            <pre id="hexContent" class="hex-body"></pre>
+        </div>
+
+        <!-- Salvage Button -->
+        <button id="salvageBtn" class="btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>SALVAGE FILES</span>
+        </button>
+
+        <!-- Results -->
+        <div id="salvageResults" class="results hidden">
+            <div class="results-header">
+                <h3>Recovery Report</h3>
+                <div class="results-time" id="resultTime"></div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <!-- Zombie Stats -->
+            <div id="zombieSection" class="zombie-panel hidden">
+                <div class="zombie-head">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="zombie-icon"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    <span>Zombie LZMA Decoder Stats</span>
+                </div>
+                <div class="zombie-grid" id="zombieGrid"></div>
+            </div>
+
+            <!-- Type Breakdown -->
+            <div class="breakdown" id="breakdown"></div>
+
+            <!-- File Table -->
+            <div class="file-section">
+                <div class="file-section-head">
+                    <h3>Recovered Files</h3>
+                    <input type="text" id="fileFilter" class="filter-input" placeholder="Search files...">
+                </div>
+                <div class="table-wrap">
+                    <table class="file-table" id="fileTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Type</th>
+                                <th>Ext</th>
+                                <th>Size</th>
+                                <th>Offset</th>
+                                <th>SHA-256</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Download -->
+            <a id="downloadLink" class="btn-download hidden" download="salvaged_files.zip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Download All Salvaged Files (.zip)</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- ═══════════ TASK HISTORY ═══════════ -->
+    <section class="panel" id="historyPanel">
+        <div class="panel-head">
+            <div class="panel-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="panel-icon"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <h2>Task History</h2>
+            </div>
+            <button class="panel-toggle" data-target="historyBody">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+        </div>
+        <div id="historyBody" class="panel-body">
+            <div id="historyList" class="history-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                    <p>No recovery tasks yet</p>
+                    <span>Upload a corrupt archive to begin</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <footer class="site-footer">
+        <div class="footer-line">
+            <span class="footer-brand">HELIX SALVAGER</span>
+            <span class="footer-sep">&middot;</span>
+            <span>Built with <span class="rust-hl">Rust</span></span>
+        </div>
+        <div class="footer-tech">AhoCorasick &middot; Fail-Forward LZMA &middot; Zombie Decoder &middot; TaintMap &middot; SHA-256</div>
+        <div class="footer-copy">The world's first automated corrupt archive recovery engine</div>
+    </footer>
+</div>
+<script src="/static/script.js"></script>
+</body>
+</html>
